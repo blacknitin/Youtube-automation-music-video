@@ -47,12 +47,28 @@ brew install ffmpeg               :: macOS
 sudo apt install ffmpeg           :: Linux
 ```
 
-### 2. Ollama — real local LLM (lyrics, storyboard, feedback, metadata)
+### 2. Free AI — real AI prompt writing at zero cost (no install)
+Paste a **free** API key and every AI step (scene video prompts, storyboard, lyrics,
+feedback, YouTube metadata) runs on a real model. `auto` mode uses it whenever Ollama
+isn't running — chain: `ollama → free → mock`.
+
+| Preset | Get free key | Default model | `backend/.env` |
+|---|---|---|---|
+| **Groq** (fastest) | console.groq.com/keys | `llama-3.3-70b-versatile` | `FREE_LLM_PRESET=groq` + `FREE_LLM_API_KEY=gsk_…` |
+| **Google Gemini** | aistudio.google.com/apikey | `gemini-2.5-flash` | `FREE_LLM_PRESET=gemini` + `FREE_LLM_API_KEY=…` |
+| **OpenRouter** `:free` | openrouter.ai/keys | `meta-llama/llama-3.3-70b-instruct:free` | `FREE_LLM_PRESET=openrouter` + `FREE_LLM_API_KEY=sk-or-…` |
+| Custom endpoint | any OpenAI-compatible URL | your choice | `FREE_LLM_PRESET=custom` + `FREE_LLM_BASE_URL` / `FREE_LLM_MODEL` / `FREE_LLM_API_KEY` |
+
+All three presets have generous free tiers — a full song (storyboard + ~10-25 scene
+prompts) costs nothing. Restart SongForge after editing `.env`; the sidebar chip shows
+`LLM: free (groq)` style status via **System → providers**.
+
+### 3. Ollama — real local LLM (lyrics, storyboard, feedback, metadata)
 1. Install from **https://ollama.com** (`winget install Ollama.Ollama`)
 2. `ollama pull llama3.1` (any model works — `qwen2.5`, `gemma2`, …)
 3. Restart SongForge. The sidebar chip flips from `LLM: mock` to `LLM: ollama`.
 
-### 3. OpenMontage — real local AI art AND animation (Stable Diffusion / LTX / Wan)
+### 4. OpenMontage — real local AI art AND animation (Stable Diffusion / LTX / Wan)
 Scene **art** and scene **animation** both come from [OpenMontage](https://github.com/calesthio/OpenMontage):
 
 ```bash
@@ -72,13 +88,13 @@ Original ComfyUI notes (alternative path):1. Install **https://www.comfy.org** a
 2. Run ComfyUI (default port **8188**) and restart SongForge — scenes now generate with SD.
 3. Custom workflow? Export it in **API format** and set `COMFY_WORKFLOW` in `.env`, embedding the literal tokens `__PROMPT__`, `__NEGATIVE__`, `__SEED__`, `__WIDTH__`, `__HEIGHT__`.
 
-### 4. WhisperX — word-perfect lyric sync (optional, heavy)
+### 5. WhisperX — word-perfect lyric sync (optional, heavy)
 ```bash
 pip install -r backend/requirements-whisperx.txt
 ```
 Used automatically when installed. Without it, SongForge estimates timings from beats and section structure.
 
-### 5. faster-whisper — extract lyrics FROM a song (optional, recommended)
+### 6. faster-whisper — extract lyrics FROM a song (optional, recommended)
 ```bash
 pip install -r backend/requirements-asr.txt
 ```
@@ -108,7 +124,7 @@ always requires your final click.
 download the MP3, import it back in the Song step. SongForge then extracts + times those same lyrics
 from the finished song.
 
-### 6. Real AI video generation — free GitHub projects (optional)
+### 7. Real AI video generation — free GitHub projects (optional)
 By default scenes are animated with a fast FFmpeg "Ken Burns" motion (works everywhere, no GPU).
 Want real AI animation? All of these are **free & open source** and plug into the existing ComfyUI provider:
 
@@ -156,7 +172,7 @@ lighting arc (verses soft dawn / choruses golden god-rays / bridges moody ember)
 quality boosters, plus a strong shared negative prompt. Works with the offline mock, Ollama and cloud
 LLMs alike — no setup needed.
 
-### 7. Character animation — AnimatedDrawings (free, CPU, MIT)
+### 8. Character animation — AnimatedDrawings (free, CPU, MIT)
 Want the *character* in a scene to really move — dance, jump, wave — instead of just camera motion?
 SongForge integrates Meta's **AnimatedDrawings** (`facebookresearch/AnimatedDrawings`, MIT):
 it finds the character in the scene image, rigs a skeleton onto it and retargets real

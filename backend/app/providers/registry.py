@@ -1,7 +1,7 @@
 """Provider registry — resolves the active providers with smart fallbacks.
 
 LLM_PROVIDER / IMAGE_PROVIDER / ALIGNER = "auto" (default):
-  LLM:    ollama (if reachable) -> mock
+  LLM:    ollama (if reachable) -> free AI (if FREE_LLM_API_KEY set) -> mock
   IMAGE:  comfyui (if reachable) -> placeholder
   ALIGNER: whisperx (if importable) -> estimate
 Set them explicitly via .env to force a provider (or to add cloud APIs).
@@ -15,6 +15,7 @@ from .base import LLMProvider, ImageProvider, AlignerProvider, ASRProvider, Vide
 from .llm_mock import MockLLMProvider
 from .llm_ollama import OllamaProvider
 from .llm_openai import OpenAICompatProvider
+from .llm_free import FreeLLMProvider
 from .image_placeholder import PlaceholderImageProvider
 from .image_comfyui import ComfyUIImageProvider
 from .image_openmontage import OpenMontageImageProvider
@@ -59,8 +60,11 @@ def get_llm() -> LLMProvider:
         if "llm" in _cache:
             return _cache["llm"]
         p = SETTINGS.llm_provider.lower()
+        free = FreeLLMProvider()
         if p == "ollama" or (p == "auto" and _ollama_ok()):
             prov = OllamaProvider()
+        elif free.available() and (p == "auto" or p in ("free", "groq", "gemini", "openrouter")):
+            prov = free
         elif p == "openai":
             prov = OpenAICompatProvider()
         else:
@@ -156,7 +160,8 @@ def system_status() -> dict:
     import shutil
     return {
         "llm": {"active": llm.name, "configured": SETTINGS.llm_provider,
-                "ollama_reachable": _ollama_ok(), "model": SETTINGS.ollama_model},
+                "ollama_reachable": _ollama_ok(), "model": SETTINGS.ollama_model,
+                "free": FreeLLMProvider().info()},
         "image": {"active": img.name, "configured": SETTINGS.image_provider,
                   "comfyui_reachable": _comfy_ok(),
                   "openmontage_art": isinstance(img, OpenMontageImageProvider)},

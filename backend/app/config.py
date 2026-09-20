@@ -32,9 +32,14 @@ class Settings:
         self.fonts_dir = Path(os.getenv("FONTS_DIR", root / "fonts"))
 
         # --- AI providers ("auto" = prefer real local provider, fall back to built-in mock) ---
-        self.llm_provider = os.getenv("LLM_PROVIDER", "auto")        # ollama | openai | mock | auto
+        self.llm_provider = os.getenv("LLM_PROVIDER", "auto")        # ollama | free | openai | mock | auto
         self.ollama_url = os.getenv("OLLAMA_URL", "http://localhost:11434")
         self.ollama_model = os.getenv("OLLAMA_MODEL", "llama3.1")
+        # Free AI (free-tier keys: groq | gemini | openrouter, or any custom endpoint)
+        self.free_llm_preset = os.getenv("FREE_LLM_PRESET", "groq")
+        self.free_llm_api_key = os.getenv("FREE_LLM_API_KEY", "")
+        self.free_llm_base_url = os.getenv("FREE_LLM_BASE_URL", "")
+        self.free_llm_model = os.getenv("FREE_LLM_MODEL", "")
         self.openai_base_url = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
         self.openai_api_key = os.getenv("OPENAI_API_KEY", "")
         self.openai_model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
