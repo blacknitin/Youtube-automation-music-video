@@ -1,0 +1,6 @@
+# Optional: local lyrics extraction (speech-to-text on the song's vocals).
+# Used by the "Extract lyrics from song" feature and the WhisperX aligner.
+#   pip install -r requirements-asr.txt
+# First run downloads the model (~75–150 MB) into the HuggingFace cache;
+# everything runs 100% locally and free afterwards.
+faster-whisper>=1.0

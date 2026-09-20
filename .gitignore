@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# regenerable renders / generated videos — never commit (re-render anytime)
+backend/data/renders/
+backend/data/projects/*/renders/
+*.mp4
+
+# transient sqlite sidecars (committed DB is checkpointed)
+*.db-wal
+*.db-shm
+
+# node (vite)
+node_modules/
+frontend/dist/
+
+# misc
+.DS_Store
+*.log

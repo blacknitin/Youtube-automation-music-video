@@ -1,0 +1,5 @@
+# Optional: word-level lyric alignment (large: installs PyTorch)
+# Install ONLY if you want WhisperX-based sync; the app works without it.
+whisperx>=3.1
+# CPU-only torch is enough:
+# pip install torch --index-url https://download.pytorch.org/whl/cpu

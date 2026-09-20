@@ -1,0 +1,1339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SongForge — Local AI Music Video Studio</title>
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js" crossorigin></script>
+<style>
+  :root{
+    --bg:#0b1020; --panel:#121a30; --panel2:#0f1628; --line:#23304f;
+    --txt:#e6ecff; --mut:#8ea0c4; --amber:#f59e0b; --violet:#8b5cf6;
+    --green:#22c55e; --red:#ef4444; --blue:#38bdf8;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(1200px 800px at 70% -10%,#1b2547 0%,#0b1020 55%);color:var(--txt);
+       font-family:'Segoe UI',system-ui,-apple-system,Roboto,sans-serif;min-height:100vh}
+  #app{display:flex;min-height:100vh}
+  .sidebar{width:250px;min-width:250px;background:rgba(10,14,28,.75);border-right:1px solid var(--line);
+           padding:18px 14px;display:flex;flex-direction:column;gap:14px;backdrop-filter:blur(6px)}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px;letter-spacing:.3px}
+  .brand .logo{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--amber),var(--violet));
+               display:grid;place-items:center;font-size:18px}
+  .brand small{display:block;font-size:10px;color:var(--mut);font-weight:600;letter-spacing:1.4px}
+  .btn{cursor:pointer;border:1px solid var(--line);background:#182242;color:var(--txt);padding:9px 14px;
+       border-radius:10px;font-size:13.5px;font-weight:600;transition:.15s;display:inline-flex;align-items:center;gap:7px}
+  .btn:hover{border-color:#3b4f83;transform:translateY(-1px)}
+  .btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+  .btn.primary{background:linear-gradient(135deg,#f59e0b,#f97316);border:none;color:#1a1205}
+  .btn.violet{background:linear-gradient(135deg,#8b5cf6,#6d28d9);border:none;color:#fff}
+  .btn.green{background:linear-gradient(135deg,#22c55e,#15803d);border:none;color:#04120a}
+  .btn.danger{background:transparent;border-color:#7f1d1d;color:#fca5a5}
+  .btn.big{padding:13px 20px;font-size:15px;border-radius:12px}
+  .btn.sm{padding:5px 10px;font-size:12px;border-radius:8px}
+  .projlist{display:flex;flex-direction:column;gap:6px;overflow:auto;flex:1}
+  .projitem{padding:10px 12px;border-radius:10px;cursor:pointer;border:1px solid transparent}
+  .projitem:hover{background:#141d38}
+  .projitem.active{background:#1a2547;border-color:#33447c}
+  .projitem .t{font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .projitem .s{font-size:11px;color:var(--mut);margin-top:3px;text-transform:capitalize}
+  .statusdot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+  .main{flex:1;padding:20px 26px 60px;max-width:1160px;margin:0 auto;width:100%}
+  .stepper{display:flex;gap:4px;overflow-x:auto;padding:6px 4px 14px}
+  .step{display:flex;align-items:center;gap:7px;padding:8px 12px;border-radius:999px;background:#121a33;
+        border:1px solid var(--line);font-size:12px;color:var(--mut);white-space:nowrap;cursor:pointer;font-weight:600}
+  .step .n{width:19px;height:19px;border-radius:50%;background:#1d2a4d;display:grid;place-items:center;font-size:10.5px}
+  .step.active{color:#fff;border-color:var(--amber);box-shadow:0 0 14px rgba(245,158,11,.25)}
+  .step.active .n{background:var(--amber);color:#1a1205}
+  .step.done{color:#b7f6cd;border-color:#14532d}.step.done .n{background:#166534;color:#dcfce7}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:18px}
+  .card h3{margin:0 0 4px;font-size:16.5px;display:flex;align-items:center;gap:9px}
+  .card .sub{color:var(--mut);font-size:12.5px;margin-bottom:14px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  label.f{display:block;font-size:11.5px;color:var(--mut);margin:10px 0 5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase}
+  input[type=text],textarea,select{width:100%;background:#0d1426;border:1px solid var(--line);color:var(--txt);
+       padding:10px 12px;border-radius:10px;font-size:13.5px;font-family:inherit;outline:none}
+  input:focus,textarea:focus,select:focus{border-color:var(--amber)}
+  textarea{resize:vertical;min-height:70px}
+  .lyrsec{background:#0d1426;border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px}
+  .lyrsec .hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+  .lyrsec .nm{font-weight:800;color:var(--amber);font-size:12.5px;letter-spacing:.8px;text-transform:uppercase}
+  .lyrline{padding:2.5px 0;font-size:14.5px;color:#d7e0f7}
+  .scene{background:#0d1426;border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
+  .scene .thumb{aspect-ratio:16/9;background:#0a0f1e;display:grid;place-items:center;color:#33415e;font-size:12px;position:relative}
+  .scene .thumb img{width:100%;height:100%;object-fit:cover}
+  .scene .body{padding:10px 12px;display:flex;flex-direction:column;gap:6px;flex:1}
+  .scene .t{font-size:12.5px;font-weight:700;color:#cdd8f2}
+  .scene .m{font-size:11px;color:var(--mut)}
+  .badge{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:800;padding:3px 8px;border-radius:999px;letter-spacing:.5px}
+  .badge.pending{background:#3a2c10;color:#fcd34d}.badge.done{background:#0e3a22;color:#6ee7a0}
+  .badge.failed{background:#3d1212;color:#fca5a5}.badge.approved{background:#0e3a22;color:#6ee7a0}
+  .badge.draft{background:#1e2a4a;color:#9fb2d8}
+  .badge.extracted{background:#2a1e4a;color:#c4b5fd}
+  .bar{height:8px;background:#0d1426;border-radius:99px;overflow:hidden;border:1px solid var(--line)}
+  .bar>div{height:100%;background:linear-gradient(90deg,var(--amber),var(--violet));transition:width .4s}
+  .flex{display:flex;align-items:center;gap:10px}.between{justify-content:space-between}.wrap{flex-wrap:wrap}
+  .mut{color:var(--mut)}.small{font-size:12px}
+  .toast{position:fixed;bottom:22px;right:22px;background:#1a2547;border:1px solid var(--line);padding:13px 18px;
+         border-radius:12px;font-size:13.5px;z-index:99;max-width:420px;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+  .toast.err{border-color:#7f1d1d;color:#fecaca}.toast.ok{border-color:#14532d;color:#bbf7d0}
+  .jobbar{position:fixed;bottom:0;left:0;right:0;background:rgba(10,15,30,.92);border-top:1px solid var(--line);
+          padding:10px 22px;display:flex;align-items:center;gap:16px;z-index:60;backdrop-filter:blur(8px)}
+  .jobbar .bar{flex:1}
+  video{width:100%;border-radius:12px;background:#000;border:1px solid var(--line)}
+  .timeline{display:flex;border-radius:10px;overflow:hidden;height:52px;border:1px solid var(--line);margin:8px 0}
+  .tlseg{position:relative;min-width:3px;border-right:1px solid rgba(0,0,0,.4);display:flex;align-items:end;overflow:hidden}
+  .tlseg .lbl{font-size:9.5px;color:#fff;padding:2px 4px;white-space:nowrap;opacity:.85;font-weight:700}
+  .tlseg img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.75}
+  .modalbg{position:fixed;inset:0;background:rgba(4,7,15,.72);z-index:80;display:grid;place-items:center;backdrop-filter:blur(4px)}
+  .modal{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:24px;width:min(680px,92vw);max-height:88vh;overflow:auto}
+  .tag{display:inline-block;background:#16203d;border:1px solid var(--line);border-radius:8px;padding:3px 9px;margin:2px 3px 2px 0;font-size:12px}
+  .chip{display:inline-flex;align-items:center;gap:6px;font-size:11px;padding:4px 10px;border-radius:999px;
+        border:1px solid var(--line);background:#101830;color:var(--mut);font-weight:700}
+  .chip .d{width:7px;height:7px;border-radius:50%}
+  .fb{background:#0d1426;border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px}
+  .fb .plan{background:#0a0f1e;border-radius:8px;padding:9px 11px;margin-top:8px;font-size:12.5px;color:#b9c7e6}
+  .thumbbox{width:280px;border-radius:12px;overflow:hidden;border:1px solid var(--line)}
+  .thumbbox img{width:100%;display:block}
+  .kv{display:flex;gap:8px;font-size:12.5px;margin:2px 0}.kv b{color:var(--mut);min-width:90px;font-weight:700}
+  .drop{border:2px dashed #2c3c68;border-radius:14px;padding:30px;text-align:center;color:var(--mut);cursor:pointer;transition:.15s}
+  .drop:hover,.drop.over{border-color:var(--amber);color:#fcd34d;background:rgba(245,158,11,.05)}
+  .h1{font-size:22px;font-weight:800;margin:2px 0 14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .empty{color:var(--mut);text-align:center;padding:34px;border:1px dashed #26335a;border-radius:14px;font-size:13.5px}
+  code{background:#0d1426;padding:2px 7px;border-radius:6px;font-size:12px;color:#93c5fd}
+  a{color:var(--blue)}
+  ::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-thumb{background:#26335a;border-radius:9px}
+</style>
+<style id="modern-theme">
+/* ===== SongForge modern theme — layered glass over deep aurora ===== */
+:root{
+  --bg:#070b16; --panel:rgba(17,24,44,.62); --line:rgba(148,163,204,.14);
+  --txt:#e8edfb; --mut:#96a3c4; --amber:#fbbf24; --green:#34d399; --red:#f87171;
+  --blue:#60a5fa; --violet:#a78bfa;
+  --grad-amber:linear-gradient(135deg,#fcd34d,#f59e0b);
+  --grad-green:linear-gradient(135deg,#34d399,#059669);
+  --grad-brand:linear-gradient(92deg,#fcd34d 0%,#f59e0b 45%,#fb7185 100%);
+  --shadow-1:0 10px 30px -12px rgba(2,6,23,.65);
+  --shadow-2:0 18px 50px -20px rgba(2,6,23,.75);
+  --ring:0 0 0 3px rgba(251,191,36,.28);
+}
+html,body{background:var(--bg);}
+body::before{content:"";position:fixed;inset:0;z-index:-2;pointer-events:none;
+  background:
+    radial-gradient(52rem 34rem at 12% -8%, rgba(124,58,237,.20), transparent 60%),
+    radial-gradient(46rem 30rem at 88% -12%, rgba(251,146,60,.16), transparent 62%),
+    radial-gradient(60rem 42rem at 55% 118%, rgba(14,165,183,.13), transparent 60%),
+    linear-gradient(180deg,#0a1020 0%,#070b16 100%);}
+body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.5;
+  background-image:radial-gradient(rgba(148,163,204,.07) 1px, transparent 1px);
+  background-size:26px 26px;}
+::selection{background:rgba(251,191,36,.30);}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:rgba(148,163,204,.25);border-radius:8px;border:2px solid transparent;background-clip:content-box}
+::-webkit-scrollbar-thumb:hover{background:rgba(148,163,204,.4);background-clip:content-box;border:2px solid transparent}
+*{scrollbar-width:thin;scrollbar-color:rgba(148,163,204,.35) transparent}
+
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;
+  box-shadow:var(--shadow-1);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  transition:border-color .25s ease, box-shadow .25s ease, transform .25s ease;}
+.card:hover{border-color:rgba(148,163,204,.24)}
+.sidebar .card{box-shadow:var(--shadow-2)}
+.brand,.h1{background:var(--grad-brand);-webkit-background-clip:text;background-clip:text;color:transparent;letter-spacing:.2px}
+.projitem{border:1px solid transparent;border-radius:12px;transition:all .2s ease}
+.projitem:hover{background:rgba(148,163,204,.08);transform:translateX(2px)}
+.projitem.on{background:linear-gradient(90deg,rgba(251,191,36,.14),rgba(251,191,36,.03));border-color:rgba(251,191,36,.28)}
+
+.btn{border-radius:12px;font-weight:700;letter-spacing:.15px;border:1px solid var(--line);
+  background:rgba(148,163,204,.09);transition:transform .16s ease, box-shadow .16s ease, background .16s ease, border-color .16s ease;}
+.btn:hover:not(:disabled){background:rgba(148,163,204,.15);transform:translateY(-1px);box-shadow:var(--shadow-1)}
+.btn:active:not(:disabled){transform:translateY(0) scale(.99)}
+.btn:focus-visible{outline:none;box-shadow:var(--ring)}
+.btn:disabled{opacity:.45}
+.btn.primary{background:var(--grad-amber);border:none;color:#231603;
+  box-shadow:0 8px 22px -8px rgba(245,158,11,.55)}
+.btn.primary:hover:not(:disabled){box-shadow:0 12px 28px -8px rgba(245,158,11,.65)}
+.btn.green{background:var(--grad-green);border:none;color:#03251a;
+  box-shadow:0 8px 22px -8px rgba(16,185,129,.5)}
+.btn.green:hover:not(:disabled){box-shadow:0 12px 28px -8px rgba(16,185,129,.6)}
+.btn.sm{border-radius:10px}
+
+.step,.stepper button{border-radius:999px !important;transition:all .2s ease}
+.step.on,.stepper .on{background:var(--grad-amber) !important;color:#231603 !important;font-weight:800;
+  box-shadow:0 6px 18px -6px rgba(245,158,11,.55)}
+.step:hover:not(.on),.stepper button:hover:not(.on){background:rgba(148,163,204,.12)}
+
+.badge{border:1px solid rgba(148,163,204,.18);backdrop-filter:blur(6px)}
+.badge.done,.badge.approved{background:rgba(16,185,129,.14);border-color:rgba(52,211,153,.35)}
+.badge.pending{background:rgba(251,191,36,.12);border-color:rgba(251,191,36,.32)}
+.badge.failed{background:rgba(248,113,113,.12);border-color:rgba(248,113,113,.32)}
+.badge.extracted{background:rgba(167,139,250,.14);border-color:rgba(167,139,250,.35)}
+
+.chip{background:rgba(17,24,44,.55);border:1px solid var(--line);border-radius:999px;backdrop-filter:blur(8px)}
+
+.scene{border-radius:14px;overflow:hidden;border:1px solid var(--line);transition:transform .2s ease, box-shadow .2s ease, border-color .2s ease}
+.scene:hover{transform:translateY(-3px);box-shadow:var(--shadow-2);border-color:rgba(251,191,36,.35)}
+.thumbbox img{transition:transform .35s ease}
+.scene:hover .thumbbox img{transform:scale(1.04)}
+
+.bar{background:rgba(148,163,204,.14);border-radius:999px;overflow:hidden;position:relative}
+.bar>div{background:var(--grad-amber);position:relative;overflow:hidden}
+.bar>div::after{content:"";position:absolute;inset:0;
+  background:linear-gradient(100deg,transparent 20%,rgba(255,255,255,.35) 50%,transparent 80%);
+  animation:shimmer 1.6s infinite}
+@keyframes shimmer{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+@media (prefers-reduced-motion:reduce){.bar>div::after{animation:none}}
+
+.toast{background:rgba(17,24,44,.85);border:1px solid var(--line);border-radius:14px;
+  box-shadow:var(--shadow-2);backdrop-filter:blur(12px);animation:toastIn .25s ease}
+@keyframes toastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+.modalbg{background:rgba(4,7,15,.62);backdrop-filter:blur(6px)}
+.modal{border-radius:20px;border:1px solid var(--line);box-shadow:var(--shadow-2)}
+.drop{border:1.5px dashed rgba(148,163,204,.35);border-radius:16px;transition:all .2s ease}
+.drop.over,.drop:hover{border-color:var(--amber);background:rgba(251,191,36,.06)}
+.lyrsec{border-left:3px solid rgba(251,191,36,.45);border-radius:8px}
+.tlseg{border-radius:8px}
+input,textarea,select{border-radius:10px}
+input:focus,textarea:focus,select:focus{outline:none;box-shadow:var(--ring)}
+.statusdot{box-shadow:0 0 0 3px rgba(52,211,153,.15)}
+</style>
+
+</head>
+<body>
+<div id="app"></div>
+<script type="text/babel" data-presets="react">
+const {useState, useEffect, useRef, useCallback} = React;
+
+/* ---------------- API helpers ---------------- */
+async function api(path, opts={}) {
+  const res = await fetch('/api' + path, {
+    headers: opts.body && !(opts.body instanceof FormData) ? {'Content-Type':'application/json'} : undefined,
+    ...opts,
+    body: opts.body && !(opts.body instanceof FormData) ? JSON.stringify(opts.body) : opts.body,
+  });
+  if (!res.ok) {
+    let detail = res.statusText;
+    try { const j = await res.json(); detail = typeof j.detail === 'string' ? j.detail : JSON.stringify(j.detail); } catch(e){}
+    throw new Error(detail);
+  }
+  return res.json();
+}
+const job = (path, opts) => api(path, opts); // jobs return {id,...}
+
+/* ---------------- Small UI pieces ---------------- */
+const Badge = ({s}) => <span className={'badge '+(s||'')}>{s}</span>;
+
+/* Format lyrics the way Suno.ai Custom mode expects: [Verse 1] / [Chorus] tags */
+function sunoLyrics(l){
+  const tag = (n)=>{
+    n = (n||'').trim(); if(!n) return '[Verse]';
+    const low = n.toLowerCase();
+    if(/^intro/.test(low)) return '[Intro]';
+    if(/^outro/.test(low)) return '[Outro]';
+    if(/bridge/.test(low)) return '[Bridge]';
+    if(/chorus|hook|refrain/.test(low)) return '[Chorus]';
+    const m = n.match(/^verse\s*(\d+)?$/i);
+    if(m) return '[Verse' + (m[1] ? ' '+m[1] : '') + ']';
+    return '[' + n + ']';
+  };
+  return (l.sections||[])
+    .filter(s=> (s.lines||[]).some(x=>(x||'').trim()))
+    .map(s=> tag(s.name) + '\n' + (s.lines||[]).filter(x=>(x||'').trim()).join('\n'))
+    .join('\n\n');
+}
+
+const StepNav = ({steps, active, onGo, status}) => {
+  const activeIdx = steps.indexOf(active);
+  const doneSet = new Set(status.doneSteps || []);
+  return (
+    <div className="stepper">
+      {steps.map((s,i)=>(
+        <div key={s.key} className={'step'+(active===s.key?' active':'')+(doneSet.has(s.key)?' done':'')}
+             onClick={()=>onGo(s.key)}>
+          <span className="n">{doneSet.has(s.key)?'✓':i+1}</span>{s.label}
+        </div>
+      ))}
+    </div>
+  );
+};
+
+const Peaks = ({peaks, duration}) => {
+  const ref = useRef(null);
+  useEffect(()=>{
+    const cv = ref.current; if (!cv) return;
+    const ctx = cv.getContext('2d');
+    const W = cv.width = cv.offsetWidth * 2, H = cv.height = 160;
+    ctx.clearRect(0,0,W,H);
+    const grad = ctx.createLinearGradient(0,0,0,H);
+    grad.addColorStop(0,'#f59e0b'); grad.addColorStop(1,'#8b5cf6');
+    ctx.fillStyle = grad;
+    (peaks||[]).forEach((p,i)=>{
+      const x = i/(peaks.length||1)*W, h = Math.max(2, p*H*0.92);
+      ctx.fillRect(x, (H-h)/2, Math.max(1.5,W/peaks.length-0.6), h);
+    });
+  },[peaks]);
+  return <canvas ref={ref} style={{width:'100%',height:80,borderRadius:10,background:'#0a0f1e',border:'1px solid var(--line)'}}/>;
+};
+
+const Time = (s) => {
+  s = Math.max(0, Math.round(s||0));
+  return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
+};
+
+/* ---------------- App ---------------- */
+const STEPS = [
+  {key:'idea', label:'Idea'},
+  {key:'lyrics', label:'Lyrics'},
+  {key:'song', label:'Song'},
+  {key:'storyboard', label:'Storyboard'},
+  {key:'scenes', label:'Scenes'},
+  {key:'video', label:'Video'},
+  {key:'review', label:'Review & Feedback'},
+  {key:'publish', label:'Publish'},
+];
+
+function computeStatus(d){
+  const done = [];
+  if (d.lyrics) done.push('idea');
+  if (d.lyrics && d.lyrics.status==='approved') done.push('lyrics');
+  if (d.song && d.analysis) done.push('song');
+  if (d.storyboard) done.push('storyboard');
+  if (d.storyboard && d.storyboard.scenes.every(s=>s.image_status==='done') && d.storyboard.scenes.length) done.push('scenes');
+  if (d.latest_render && d.latest_render.status==='done') done.push('video');
+  if (d.status==='final_approved' || d.status==='metadata_approved' || d.status==='uploaded') done.push('review');
+  if (d.upload && d.upload.status==='done') done.push('publish');
+  return {doneSteps:done};
+}
+
+/* ---------------- Sidebar ---------------- */
+function Sidebar({projects, pid, onNew, onPick, providers, onSettings, yt, onConnectYt}){
+  return (
+    <div className="sidebar">
+      <div className="brand">
+        <div className="logo">🎵</div>
+        <div>SongForge<small>LOCAL AI VIDEO STUDIO</small></div>
+      </div>
+      <button className="btn primary" onClick={onNew}>＋ New Song Project</button>
+      <div className="projlist">
+        {projects.length===0 && <div className="mut small" style={{padding:'8px 10px'}}>No projects yet. Create your first song!</div>}
+        {projects.map(p=>(
+          <div key={p.brief.id} className={'projitem'+(p.brief.id===pid?' active':'')} onClick={()=>onPick(p.brief.id)}>
+            <div className="t">{p.brief.title || 'Untitled'}</div>
+            <div className="s"><span className="statusdot" style={{background:statusColor(p.brief.status)}}></span>{p.brief.status.replace(/_/g,' ')}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{display:'flex',flexDirection:'column',gap:7}}>
+        {providers && (
+          <React.Fragment>
+            <Chip ok={providers.llm.active!=='mock'} label={'LLM: '+providers.llm.active} hint={'Ollama '+(providers.llm.ollama_reachable?'detected':'offline')+' — using '+providers.llm.active}/>
+            <Chip ok={providers.image.active!=='placeholder'} label={'Art: '+providers.image.active} hint={'OpenMontage '+(providers.image.openmontage_art?'connected':'not connected')+' — using '+providers.image.active}/>
+            {providers.video && providers.video.active!=='ffmpeg-motion' &&
+              <Chip ok={true} label={'Motion: '+providers.video.active} hint={'AI image-to-video via ComfyUI (open-source models)'}/>}
+            <Chip ok={providers.ffmpeg.ffmpeg_found} label={'FFmpeg '+(providers.ffmpeg.ffmpeg_found?'ready':'missing')} hint={providers.ffmpeg.ffmpeg_found?'video render ready':'install ffmpeg'}/>
+          </React.Fragment>
+        )}
+        {yt && <Chip ok={yt.connected} label={yt.connected?'YouTube connected':'YouTube not connected'}
+                     hint={yt.connected?'ready to upload after approval':'connect in Publish step'} onClick={onConnectYt}/>}
+        <button className="btn sm" style={{alignSelf:'flex-start'}} onClick={onSettings}>⚙ System & providers</button>
+      </div>
+    </div>
+  );
+}
+function statusColor(s){
+  return {'created':'#64748b','lyrics_draft':'#f59e0b','lyrics_approved':'#22c55e','analyzed':'#22c55e',
+    'storyboard_draft':'#8b5cf6','scenes_ready':'#22c55e','render_ready':'#22c55e','final_approved':'#38bdf8',
+    'metadata_approved':'#38bdf8','uploaded':'#f97316'}[s]||'#64748b';
+}
+function Chip({ok, label, hint, onClick}){
+  return <span className="chip" title={hint} onClick={onClick} style={{cursor:onClick?'pointer':'default'}}>
+    <span className="d" style={{background: ok? 'var(--green)':'#94a3b8'}}></span>{label}</span>;
+}
+
+/* ---------------- New Project Modal ---------------- */
+function NewProject({onClose, onCreated, say}){
+  const [idea, setIdea] = useState('');
+  const [title, setTitle] = useState('');
+  const [language, setLanguage] = useState('hi');
+  const [genre, setGenre] = useState('');
+  const [mood, setMood] = useState('');
+  const [style, setStyle] = useState('');
+  const [busy, setBusy] = useState(false);
+  const examples = [
+    'A devotional Hanuman bhajan full of courage and devotion',
+    'A romantic monsoon song about first love in Varanasi',
+    'A motivational song about a small-town boy chasing big dreams',
+    'An emotional song about a mother\u2019s love, soft and slow',
+  ];
+  const submit = async () => {
+    if (idea.trim().length < 3) return say('Describe your song idea first','err');
+    setBusy(true);
+    try{
+      const p = await api('/projects', {method:'POST', body:{title, idea, language, genre, mood, visual_style:style}});
+      onCreated(p.id);
+      onClose();
+      say('Project created 🎉 Now generating lyrics…');
+      await api(`/projects/${p.id}/lyrics/generate`, {method:'POST'});
+    }catch(e){ say(e.message,'err'); }
+    setBusy(false);
+  };
+  return (
+    <div className="modalbg" onClick={onClose}>
+      <div className="modal" onClick={e=>e.stopPropagation()}>
+        <h3 style={{marginTop:0}}>🎼 New Song Project</h3>
+        <div className="sub mut">Describe your song idea in any language. The AI writes the lyrics next.</div>
+        <label className="f">Song idea *</label>
+        <textarea rows="3" placeholder="e.g. A powerful Hanuman bhajan about courage in hard times…" value={idea} onChange={e=>setIdea(e.target.value)}/>
+        <div className="wrap" style={{margin:'8px 0'}}>
+          {examples.map(x=><span key={x} className="tag" style={{cursor:'pointer'}} onClick={()=>setIdea(x)}>{x}</span>)}
+        </div>
+        <div className="grid2">
+          <div>
+            <label className="f">Title (optional)</label>
+            <input type="text" value={title} onChange={e=>setTitle(e.target.value)} placeholder="Auto from idea"/>
+          </div>
+          <div>
+            <label className="f">Language</label>
+            <select value={language} onChange={e=>setLanguage(e.target.value)}>
+              <option value="hi">Hindi</option><option value="en">English</option><option value="hi-en">Hinglish</option>
+            </select>
+          </div>
+          <div>
+            <label className="f">Genre</label>
+            <input type="text" value={genre} onChange={e=>setGenre(e.target.value)} placeholder="bhajan, romantic, hip-hop…"/>
+          </div>
+          <div>
+            <label className="f">Mood</label>
+            <input type="text" value={mood} onChange={e=>setMood(e.target.value)} placeholder="devotional, emotional, energetic…"/>
+          </div>
+        </div>
+        <label className="f">Visual style (optional)</label>
+        <input type="text" value={style} onChange={e=>setStyle(e.target.value)} placeholder="e.g. cinematic devotional painting, golden light — or anime, watercolor…"/>
+        <div className="flex" style={{justifyContent:'flex-end', marginTop:18}}>
+          <button className="btn" onClick={onClose}>Cancel</button>
+          <button className="btn primary" disabled={busy} onClick={submit}>{busy?'Creating…':'🎼 Create & Write Lyrics'}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- Lyrics panel ---------------- */
+function LyricsPanel({d, reload, say, go}){
+  const [sections, setSections] = useState(null);
+  const [title, setTitle] = useState('');
+  const [dirty, setDirty] = useState(false);
+  const [sunoText, setSunoText] = useState(null);
+  useEffect(()=>{
+    if (d.lyrics){
+      setTitle(d.lyrics.title||'');
+      setSections(JSON.parse(JSON.stringify(d.lyrics.sections||[])));
+      setDirty(false);
+    }
+  },[d.lyrics && d.lyrics.id]);
+  if (!d.lyrics) return <div className="card"><div className="empty">No lyrics yet — generate them from the Idea step, or open the Song step and use “Extract lyrics from song”.</div></div>;
+  const approved = d.lyrics.status === 'approved';
+  const edit = (si, val) => { setSections(s=>s.map((x,i)=> i===si? {...x, lines: val.split('\n')} : x)); setDirty(true); };
+  const rename = (si, val) => { setSections(s=>s.map((x,i)=> i===si? {...x, name: val} : x)); setDirty(true); };
+  const save = async () => {
+    try{ await api(`/projects/${d.id}/lyrics`, {method:'PUT', body:{title, sections}}); say('Lyrics saved ✓'); reload(); }
+    catch(e){ say(e.message,'err'); }
+  };
+  const approve = async () => {
+    try{
+      if (dirty) await api(`/projects/${d.id}/lyrics`, {method:'PUT', body:{title, sections}});
+      await api(`/projects/${d.id}/lyrics/approve`, {method:'POST'});
+      say('Lyrics approved ✅ Next: add your song audio');
+      reload(); go('song');
+    }catch(e){ say(e.message,'err'); }
+  };
+  const regen = async () => {
+    try{ await api(`/projects/${d.id}/lyrics/generate`, {method:'POST'}); say('Writing a fresh version…'); reload(); }
+    catch(e){ say(e.message,'err'); }
+  };
+  const copySuno = async () => {
+    const text = sunoLyrics(d.lyrics);
+    try{
+      await navigator.clipboard.writeText(text);
+      say('Copied ✓ — paste into suno.ai → Custom mode → Lyrics');
+    }catch(e){
+      setSunoText(text);   // sandboxed preview blocks the clipboard — show it
+    }
+  };
+  return (
+    <div className="card">
+      <h3>✍️ Lyrics Editor {approved && <Badge s="approved"/>} {!approved && <Badge s="draft"/>}
+        {d.lyrics.source==='extracted' && <Badge s="extracted"/>}</h3>
+      <div className="sub">{d.lyrics.source==='extracted'
+        ? 'Extracted from your song audio — lines are timed to the exact moment they are sung. Edit if needed, then approve.'
+        : 'Edit anything you like, then hit Approve Lyrics to lock them for the video.'}</div>
+      <div className="grid2" style={{marginBottom:8}}>
+        <div>
+          <label className="f">Song title</label>
+          <input type="text" value={title} onChange={e=>{setTitle(e.target.value); setDirty(true);}}/>
+        </div>
+        <div style={{display:'flex',alignItems:'end',gap:8,flexWrap:'wrap'}}>
+          <button className="btn" onClick={regen}>🔄 Regenerate with AI</button>
+          <button className="btn" onClick={copySuno} title="Copy lyrics formatted for suno.ai Custom mode">📋 Copy for Suno</button>
+          <button className="btn" disabled={!dirty} onClick={save}>💾 Save edits</button>
+          <button className="btn green" onClick={approve}>✅ Approve Lyrics</button>
+        </div>
+      </div>
+      {sunoText !== null && (
+        <div className="modalbg" onClick={()=>setSunoText(null)}>
+          <div className="modal" onClick={e=>e.stopPropagation()}>
+            <h3 style={{marginTop:0}}>📋 Your lyrics — Suno-ready</h3>
+            <div className="sub mut">Paste into <b>suno.ai → Create → Custom mode → Lyrics</b>, generate your song, download the MP3, then import it in the Song step.</div>
+            <textarea readOnly value={sunoText} onFocus={e=>e.target.select()}
+                      style={{width:'100%',height:260,background:'#0b1120',color:'#dbe4ff',
+                              border:'1px solid var(--line)',borderRadius:10,padding:12,fontFamily:'monospace',fontSize:13,marginTop:8}}/>
+            <div className="flex" style={{justifyContent:'flex-end',marginTop:10}}>
+              <button className="btn" onClick={()=>setSunoText(null)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {(sections||[]).map((sec,i)=>(
+        <div className="lyrsec" key={i}>
+          <div className="hd">
+            <input className="nm" style={{background:'transparent',border:'none',color:'var(--amber)',fontWeight:800,width:220}}
+                   value={sec.name||''} onChange={e=>rename(i,e.target.value)}/>
+            <span className="mut small">{(sec.lines||[]).filter(x=>x.trim()).length} lines</span>
+          </div>
+          <textarea rows={Math.max(2,(sec.lines||[]).length)} value={(sec.lines||[]).join('\n')}
+                    onChange={e=>edit(i,e.target.value)} style={{background:'transparent',border:'none',padding:'0'}}/>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ---------------- Song panel ---------------- */
+function SongPanel({d, reload, say, go}){
+  const [over, setOver] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const fileRef = useRef(null);
+  const upload = async (file, source) => {
+    if (!file) return;
+    setBusy(true);
+    try{
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('title', file.name.replace(/\.[^.]+$/,''));
+      fd.append('source', source || 'suno_import');
+      await api(`/projects/${d.id}/song/import`, {method:'POST', body:fd});
+      say('Song imported — analyzing BPM & structure…');
+      reload();
+    }catch(e){ say(e.message,'err'); }
+    setBusy(false);
+  };
+  const demo = async () => {
+    setBusy(true);
+    try{ await api(`/projects/${d.id}/song/demo`, {method:'POST'}); say('Creating a local demo track…'); reload(); }
+    catch(e){ say(e.message,'err'); }
+    setBusy(false);
+  };
+  const extract = async () => {
+    setBusy(true);
+    try{ await api(`/projects/${d.id}/lyrics/extract`, {method:'POST'});
+         say('Listening to the vocals — extracting lyrics with timings…');
+         setTimeout(reload, 2500); }
+    catch(e){ say(e.message,'err'); }
+    setBusy(false);
+  };
+  return (
+    <React.Fragment>
+      <div className="card">
+        <h3>🎵 Song Audio {d.song && <Badge s="done"/>}</h3>
+        <div className="sub">MVP workflow: copy your lyrics with <b>📋 Copy for Suno</b> (Lyrics step) → generate in <b>suno.ai</b> → download the MP3/WAV → import here. Lyrics are then auto-extracted & approved, and Autopilot carries on to the video.</div>
+        {d.song ? (
+          <div className="grid2">
+            <div>
+              <div className="kv"><b>Title</b> {d.song.title}</div>
+              <div className="kv"><b>Source</b> {d.song.source.replace('_',' ')}</div>
+              <div className="kv"><b>Duration</b> {Time(d.song.duration)}</div>
+              {d.analysis && <React.Fragment>
+                <div className="kv"><b>BPM</b> {d.analysis.bpm} {d.analysis.aligned && <span className="badge done">lyrics synced</span>}</div>
+                <div className="kv"><b>Sections</b> {(d.analysis.sections||[]).map(s=>s.name).join(' → ')}</div>
+              </React.Fragment>}
+              <audio controls src={d.song.file_url} style={{width:'100%',marginTop:10}}/>
+            </div>
+            <div>
+              {d.analysis && <Peaks peaks={d.analysis.peaks}/>}
+              <div className="flex" style={{marginTop:12}}>
+                <button className="btn" onClick={()=>fileRef.current.click()}>🔁 Replace song</button>
+                <button className="btn" disabled={busy} onClick={extract}>🎤 Extract lyrics from song</button>
+                <button className="btn green" onClick={()=>go('storyboard')}>Next: Storyboard →</button>
+              </div>
+              <div className="mut small" style={{marginTop:6}}>
+                Extract runs speech-to-text on the vocals (faster-whisper when installed) and rebuilds the
+                lyrics — with each line timed to the exact moment it is sung.
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <div className={'drop'+(over?' over':'')}
+                 onClick={()=>fileRef.current.click()}
+                 onDragOver={e=>{e.preventDefault(); setOver(true);}}
+                 onDragLeave={()=>setOver(false)}
+                 onDrop={e=>{e.preventDefault(); setOver(false); upload(e.dataTransfer.files[0]);}}>
+              <div style={{fontSize:34}}>🎧</div>
+              <b>Drop your song here</b> or click to browse<br/>
+              <span className="small">MP3 · WAV · M4A · FLAC — e.g. your Suno download</span>
+            </div>
+            <div className="flex" style={{marginTop:14, justifyContent:'center'}}>
+              <button className="btn violet" disabled={busy} onClick={demo}>🎹 Use free local demo track</button>
+            </div>
+            <div className="mut small" style={{textAlign:'center',marginTop:8}}>
+              Tip: In Suno, use “Custom” mode with your approved lyrics, then import the result here.
+            </div>
+          </div>
+        )}
+        <input ref={fileRef} type="file" accept=".mp3,.wav,.m4a,.ogg,.flac,.aac,.opus,.wma" hidden
+               onChange={e=>upload(e.target.files[0])}/>
+      </div>
+    </React.Fragment>
+  );
+}
+
+/* ---------------- Storyboard panel ---------------- */
+function StoryboardPanel({d, reload, say, go}){
+  const [busy, setBusy] = useState(false);
+  const [styleBible, setStyleBible] = useState(null);
+  const [dirty, setDirty] = useState(false);
+  useEffect(()=>{
+    if (d.storyboard){ setStyleBible(JSON.parse(JSON.stringify(d.storyboard.style_bible||{}))); setDirty(false); }
+  },[d.storyboard && d.storyboard.id]);
+  const gen = async () => {
+    setBusy(true);
+    try{ await api(`/projects/${d.id}/storyboard/generate`, {method:'POST'}); say('AI director is designing your video…'); reload(); }
+    catch(e){ say(e.message,'err'); }
+    setBusy(false);
+  };
+  const approve = async () => {
+    try{
+      if (dirty && styleBible) await api(`/projects/${d.id}/storyboard`, {method:'PUT', body:{style_bible:styleBible}});
+      await api(`/projects/${d.id}/storyboard/approve`, {method:'POST'});
+      say('Storyboard approved ✅ Next: generate scene art');
+      reload(); go('scenes');
+    }catch(e){ say(e.message,'err'); }
+  };
+  if (!d.storyboard) return (
+    <div className="card">
+      <h3>🎬 Storyboard</h3>
+      <div className="sub">The AI director turns your approved lyrics + music analysis into a scene-by-scene film plan with a consistent style bible (characters, locations, palette).</div>
+      <button className="btn primary big" onClick={gen} disabled={busy}>🎬 {busy?'Designing…':'Generate Storyboard with AI'}</button>
+    </div>
+  );
+  if (!styleBible) return <div className="card"><div className="empty">Loading storyboard…</div></div>;
+  const sb = d.storyboard;
+  return (
+    <div className="card">
+      <h3>🎬 Storyboard <span className="mut small">v{sb.version}</span> {sb.status==='approved'?<Badge s="approved"/>:<Badge s="draft"/>}</h3>
+      <div className="sub">The <b>style bible</b> keeps characters & locations consistent across every scene. Edit the reusable character descriptions if you like.</div>
+      <div className="grid2">
+        <div>
+          <label className="f">Visual style (applies to all scenes)</label>
+          <textarea rows="3" value={styleBible.visual_style||''}
+                    onChange={e=>{setStyleBible(s=>({...s, visual_style:e.target.value})); setDirty(true);}}/>
+          <label className="f">Characters (reusable prompt tokens)</label>
+          {(styleBible.characters||[]).map((c,i)=>(
+            <div key={i} className="lyrsec" style={{marginBottom:6}}>
+              <div className="nm" style={{color:'var(--violet)'}}>{c.name}</div>
+              <textarea rows="2" style={{background:'transparent',border:'none',padding:0,fontSize:12.5}}
+                        value={c.prompt_token||''}
+                        onChange={e=>{const v=e.target.value; setStyleBible(s=>({...s, characters:s.characters.map((x,j)=>j===i?{...x,prompt_token:v}:x)})); setDirty(true);}}/>
+            </div>
+          ))}
+          <label className="f">Locations</label>
+          <div className="wrap">{(styleBible.locations||[]).map((l,i)=><span key={i} className="tag">{l}</span>)}</div>
+          <label className="f">Palette</label>
+          <div className="flex">
+            {(styleBible.color_palette||[]).map((c,i)=><span key={i} style={{width:26,height:26,borderRadius:8,background:c,border:'1px solid #333'}} title={c}/>)}
+          </div>
+        </div>
+        <div>
+          <label className="f">Scene plan ({sb.scenes.length} scenes)</label>
+          <div style={{maxHeight:430, overflow:'auto', display:'flex', flexDirection:'column', gap:8, paddingRight:4}}>
+          {sb.scenes.map(s=>(
+            <div key={s.id} className="lyrsec" style={{marginBottom:0}}>
+              <div className="hd"><b style={{color:'var(--blue)'}}>#{s.idx+1} · {s.section} · {s.shot}</b>
+                <span className="mut small">{Time(s.start)}–{Time(s.end)}</span></div>
+              <div className="small" style={{color:'#cdd8f2'}}>{s.description}</div>
+              {s.lyrics_text && <div className="mut small" style={{marginTop:4, fontStyle:'italic'}}>“{s.lyrics_text}”</div>}
+            </div>
+          ))}
+          </div>
+        </div>
+      </div>
+      <div className="flex" style={{marginTop:16}}>
+        {sb.status!=='approved' && <button className="btn green" onClick={approve}>✅ Approve Storyboard</button>}
+        {sb.status==='approved' && <button className="btn green" onClick={()=>go('scenes')}>Next: Generate Scene Art →</button>}
+        <button className="btn" onClick={gen} disabled={busy}>🔄 Regenerate storyboard</button>
+        {dirty && <span className="mut small">unsaved style edits —</span>}
+        {dirty && <button className="btn sm" onClick={approve}>save & approve</button>}
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- Scenes panel ---------------- */
+function ScenesPanel({d, reload, say, go}){
+  const [edit, setEdit] = useState(null);
+  const busyScene = (d.jobs||[]).find(j=>(j.type==='scenes.generate'||j.type==='revision.apply')&&j.status==='running');
+  const genAll = async () => {
+    try{ await api(`/projects/${d.id}/scenes/generate`, {method:'POST'}); say('Generating all scene images…'); }
+    catch(e){ say(e.message,'err'); }
+  };
+  const regen = async (sid) => {
+    try{ await api(`/scenes/${sid}/regenerate`, {method:'POST'}); say('Regenerating that scene…'); }
+    catch(e){ say(e.message,'err'); }
+  };
+  if (!d.storyboard) return <div className="card"><div className="empty">Create a storyboard first.</div></div>;
+  const done = d.storyboard.scenes.filter(s=>s.image_status==='done').length;
+  // group scenes by song section (Intro, Verse 1, Chorus…) so every verse is visible
+  const groups = [];
+  (d.storyboard.scenes||[]).forEach(s=>{
+    const key = s.section || 'Scenes';
+    if (groups.length && groups[groups.length-1].key===key) groups[groups.length-1].items.push(s);
+    else groups.push({key, items:[s]});
+  });
+  return (
+    <div className="card">
+      <h3>🖼️ Scene Art <span className="mut small">{done}/{d.storyboard.scenes.length} ready · one scene per lyric line</span></h3>
+      <div className="sub">Scenes are grouped by song section — every verse line gets its own scene. Images use your style bible for consistency. Placeholder art until OpenMontage is connected (⚙ Settings).</div>
+      <div className="flex" style={{marginBottom:14}}>
+        <button className="btn primary" onClick={genAll} disabled={!!busyScene}>🎨 {busyScene?'Generating…':(done===d.storyboard.scenes.length?'Regenerate all':'Generate all pending')}</button>
+        {done===d.storyboard.scenes.length && d.storyboard.scenes.length>0 &&
+          <button className="btn green" onClick={()=>go('video')}>Next: Render Video →</button>}
+      </div>
+      {groups.map(g=>(
+        <div key={g.key} style={{marginBottom:18}}>
+          <div className="flex between" style={{margin:'2px 2px 8px'}}>
+            <span className="nm" style={{color:'var(--amber)',fontWeight:800,fontSize:12.5,letterSpacing:'.8px',textTransform:'uppercase'}}>
+              ♪ {g.key}
+            </span>
+            <span className="mut small">{g.items.length} scene{g.items.length>1?'s':''}</span>
+          </div>
+          <div className="grid3">
+            {g.items.map(s=>(
+              <div className="scene" key={s.id}>
+                <div className="thumb">
+                  {s.image_status==='done' && <img src={s.image_url} alt={'scene '+(s.idx+1)}/>}
+                  {s.image_status==='pending' && '⏳ not generated'}
+                  {s.image_status==='failed' && <span style={{color:'#fca5a5'}}>⚠️ failed — <span style={{textDecoration:'underline',cursor:'pointer'}} onClick={()=>regen(s.id)}>retry</span></span>}
+                  <span style={{position:'absolute',top:6,left:6}} className="badge draft">#{s.idx+1} · {g.key}</span>
+                </div>
+                <div className="body">
+                  {s.lyrics_text && <div style={{fontSize:12.5,color:'#fcd34d',fontWeight:600,lineHeight:1.35}}>“{s.lyrics_text}”</div>}
+                  <div className="t">{Time(s.start)}–{Time(s.end)} · {s.shot} · {s.motion.replace(/_/g,' ')}</div>
+                  <div className="m" style={{flex:1}}>{s.lyrics_text? s.description.slice(0,90) : s.description.slice(0,110)}</div>
+                  <div className="flex wrap">
+                    <button className="btn sm" onClick={()=>regen(s.id)} disabled={!!busyScene}>🔄</button>
+                    <button className="btn sm" onClick={()=>setEdit(s)}>✏️ Edit prompt</button>
+                    <Badge s={s.image_status}/>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+      {edit && <EditScene scene={edit} onClose={()=>setEdit(null)} reload={reload} say={say}/>}
+    </div>
+  );
+}
+
+function EditScene({scene, onClose, reload, say}){
+  const [prompt, setPrompt] = useState(scene.prompt);
+  const [desc, setDesc] = useState(scene.description);
+  const [motion, setMotion] = useState(scene.motion);
+  const [start, setStart] = useState(scene.start);
+  const [end, setEnd] = useState(scene.end);
+  const save = async (regen) => {
+    try{
+      await api(`/scenes/${scene.id}`, {method:'PUT', body:{prompt, description:desc, motion, start:+start, end:+end}});
+      say('Scene saved ✓');
+      if (regen) await api(`/scenes/${scene.id}/regenerate`, {method:'POST'});
+      reload(); onClose();
+    }catch(e){ say(e.message,'err'); }
+  };
+  return (
+    <div className="modalbg" onClick={onClose}>
+      <div className="modal" onClick={e=>e.stopPropagation()}>
+        <h3 style={{marginTop:0}}>✏️ Scene #{scene.idx+1} <span className="mut small">{scene.section} · {Time(scene.start)}–{Time(scene.end)}</span></h3>
+        <label className="f">Image prompt (character tokens keep it consistent)</label>
+        <textarea rows="4" value={prompt} onChange={e=>setPrompt(e.target.value)}/>
+        <label className="f">Action description</label>
+        <textarea rows="2" value={desc} onChange={e=>setDesc(e.target.value)}/>
+        <div className="grid3">
+          <div><label className="f">Camera motion</label>
+            <select value={motion} onChange={e=>setMotion(e.target.value)}>
+              {['slow_zoom_in','slow_zoom_out','pan_left','pan_right','static'].map(m=><option key={m} value={m}>{m.replace(/_/g,' ')}</option>)}
+            </select>
+          </div>
+          <div><label className="f">Start (s)</label><input type="text" value={start} onChange={e=>setStart(e.target.value)}/></div>
+          <div><label className="f">End (s)</label><input type="text" value={end} onChange={e=>setEnd(e.target.value)}/></div>
+        </div>
+        <div className="flex" style={{justifyContent:'flex-end', marginTop:16}}>
+          <button className="btn" onClick={onClose}>Cancel</button>
+          <button className="btn" onClick={()=>save(false)}>💾 Save</button>
+          <button className="btn violet" onClick={()=>save(true)}>🎨 Save & regenerate image</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- Video panel ---------------- */
+function VideoPanel({d, reload, say, go}){
+  const [cfg, setCfg] = useState({resolution:'1280x720', fps:30, transition:'crossfade', transition_duration:0.6, burn_subtitles:true, karaoke:true});
+  const [busy, setBusy] = useState(false);
+  const renders = d.renders || [];
+  const startRender = async () => {
+    setBusy(true);
+    try{
+      await api(`/projects/${d.id}/render`, {method:'POST', body:cfg});
+      say('Rendering with FFmpeg — progress below ⏳'); reload();
+    }catch(e){ say(e.message,'err'); }
+    setBusy(false);
+  };
+  const rend = d.latest_render;
+  return (
+    <div className="card">
+      <h3>🎞️ Render Video</h3>
+      <div className="sub">FFmpeg combines scene art (Ken Burns motion + crossfades), your song, and synchronized karaoke lyrics into the final MP4.</div>
+      <div className="grid3">
+        <div><label className="f">Resolution</label>
+          <select value={cfg.resolution} onChange={e=>setCfg(c=>({...c,resolution:e.target.value}))}>
+            <option>854x480</option><option>1280x720</option><option>1920x1080</option>
+          </select></div>
+        <div><label className="f">FPS</label>
+          <select value={cfg.fps} onChange={e=>setCfg(c=>({...c,fps:+e.target.value}))}>
+            <option value={24}>24</option><option value={30}>30</option>
+          </select></div>
+        <div><label className="f">Transition</label>
+          <select value={cfg.transition} onChange={e=>setCfg(c=>({...c,transition:e.target.value}))}>
+            <option value="crossfade">crossfade</option><option value="none">hard cut</option>
+          </select></div>
+      </div>
+      <div className="flex wrap" style={{margin:'12px 0 4px'}}>
+        <label className="chip" style={{cursor:'pointer'}}>
+          <input type="checkbox" checked={cfg.burn_subtitles} onChange={e=>setCfg(c=>({...c,burn_subtitles:e.target.checked}))}/> burn lyrics subtitles
+        </label>
+        <label className="chip" style={{cursor:'pointer'}}>
+          <input type="checkbox" checked={cfg.karaoke} onChange={e=>setCfg(c=>({...c,karaoke:e.target.checked}))}/> karaoke word-fill
+        </label>
+      </div>
+      <div style={{marginTop:14}}>
+        {rend && rend.status==='done' && (
+          <React.Fragment>
+            <video controls src={rend.file_url} key={rend.id}/>
+            <div className="flex between" style={{marginTop:8}}>
+              <a className="btn" href={rend.file_url} download>⬇️ Download MP4</a>
+              <button className="btn green" onClick={()=>go('review')}>Next: Review & Feedback →</button>
+            </div>
+          </React.Fragment>
+        )}
+        {(!rend || rend.status!=='done') && (
+          <div className="empty">
+            {rend && rend.status==='running' ? 'Rendering… watch the progress bar' :
+             'No render yet — set your options and hit Render.'}
+          </div>
+        )}
+      </div>
+      <div style={{marginTop:14}}>
+        <button className="btn primary big" onClick={startRender} disabled={busy}>🎞️ Render video</button>
+      </div>
+      {renders.length>1 && (
+        <React.Fragment>
+          <label className="f">Render history</label>
+          {renders.slice(1).map(r=>(
+            <div key={r.id} className="flex between lyrsec" style={{marginBottom:6}}>
+              <span className="small">render #{r.id} · {r.status} {r.file_url? <a href={r.file_url}>download</a>:''}</span>
+              <span className="mut small">{(r.settings||{}).resolution}</span>
+            </div>
+          ))}
+        </React.Fragment>
+      )}
+    </div>
+  );
+}
+
+/* ---------------- Review & Feedback panel ---------------- */
+function ReviewPanel({d, reload, say, go}){
+  const [text, setText] = useState('');
+  const finalDone = d.status==='final_approved'||d.status==='metadata_approved'||d.status==='uploaded';
+  const send = async () => {
+    if (!text.trim()) return;
+    try{
+      await api(`/projects/${d.id}/feedback`, {method:'POST', body:{text}});
+      setText(''); say('AI is interpreting your feedback…'); reload();
+    }catch(e){ say(e.message,'err'); }
+  };
+  const applyFb = async (fid) => {
+    try{
+      await api(`/feedback/${fid}/apply`, {method:'POST', body:{}});
+      say('Applying revision — only affected scenes regenerate…'); reload();
+    }catch(e){ say(e.message,'err'); }
+  };
+  const finalApprove = async () => {
+    try{
+      await api(`/projects/${d.id}/approve-final`, {method:'POST', body:{confirm:true}});
+      say('Final approval recorded ✅ You can now publish.'); reload(); go('publish');
+    }catch(e){ say(e.message,'err'); }
+  };
+  const suggestions = ['Make it more emotional','Change scene 3','Make Hanuman look more realistic','Change the background to a temple at night','Brighter colors overall'];
+  return (
+    <React.Fragment>
+      <div className="card">
+        <h3>💬 Director Feedback</h3>
+        <div className="sub">Talk like a director. The AI changes <b>only the required scenes</b> — not the whole video. Every revision is saved as a new version.</div>
+        <div className="flex">
+          <input type="text" placeholder='e.g. "Make scene 3 more emotional"' value={text}
+                 onChange={e=>setText(e.target.value)} onKeyDown={e=>e.key==='Enter'&&send()}/>
+          <button className="btn primary" onClick={send}>Send feedback</button>
+        </div>
+        <div className="wrap" style={{marginTop:8}}>
+          {suggestions.map(s=><span key={s} className="tag" style={{cursor:'pointer'}} onClick={()=>setText(s)}>{s}</span>)}
+        </div>
+        <div style={{marginTop:14}}>
+          {(d.feedback||[]).length===0 && <div className="mut small">No feedback yet.</div>}
+          {(d.feedback||[]).map(f=>(
+            <div className="fb" key={f.id}>
+              <div className="flex between">
+                <b style={{fontSize:13.5}}>“{f.text}”</b>
+                <Badge s={f.status==='interpreted'?'pending':f.status}/>
+              </div>
+              {f.plan && f.plan.summary && <div className="plan">🤖 {f.plan.summary}</div>}
+              {f.plan && (f.plan.ops||[]).length>0 && (
+                <div className="mut small" style={{marginTop:5}}>
+                  will regenerate {(f.plan.ops.filter(o=>o.op==='scene_image')).length} scene(s) only
+                </div>
+              )}
+              {f.status==='interpreted' && <button className="btn sm violet" style={{marginTop:8}} onClick={()=>applyFb(f.id)}>Apply revision</button>}
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="card">
+        <h3>🛂 Final Approval {finalDone? <Badge s="approved"/> : <Badge s="draft"/>}</h3>
+        <div className="sub">Watch the rendered video above (Video step). If you're happy, give your final approval. YouTube upload happens ONLY after this + metadata approval.</div>
+        <div className="flex">
+          {!finalDone && <button className="btn green big" onClick={finalApprove}>🛂 Give Final Approval</button>}
+          {finalDone && <button className="btn green big" onClick={()=>go('publish')}>Next: Publish →</button>}
+        </div>
+        {d.versions && d.versions.length>0 && (
+          <React.Fragment>
+            <label className="f">Version history</label>
+            {d.versions.map(v=>(
+              <div key={v.id} className="flex between lyrsec" style={{marginBottom:6}}>
+                <span className="small"><b>v{v.number}</b> · {v.label||'snapshot'}</span>
+                <span className="mut small">{new Date(v.created_at).toLocaleString()} · {v.scene_count} scenes</span>
+              </div>
+            ))}
+          </React.Fragment>
+        )}
+      </div>
+    </React.Fragment>
+  );
+}
+
+/* ---------------- Publish panel ---------------- */
+function PublishPanel({d, reload, say, go, yt, reloadYt}){
+  const m = d.metadata || {title:'',description:'',tags:[],hashtags:[],privacy:'private',category:'10'};
+  const [form, setForm] = useState(m);
+  const [tagText, setTagText] = useState((m.tags||[]).join(', '));
+  const [busy, setBusy] = useState(false);
+  const [uploadRes, setUploadRes] = useState(d.upload);
+  const [agree, setAgree] = useState(false);
+  useEffect(()=>{ setForm(d.metadata||m); setTagText(((d.metadata||{}).tags||[]).join(', ')); setUploadRes(d.upload); },[d.metadata && d.metadata.id, d.upload && d.upload.id]);
+  const metaApproved = form.status==='approved' || (d.metadata&&d.metadata.status==='approved');
+  const finalDone = d.status==='final_approved'||d.status==='metadata_approved'||d.status==='uploaded';
+  const genMeta = async () => {
+    setBusy(true);
+    try{ await api(`/projects/${d.id}/metadata/generate`, {method:'POST'}); say('Writing SEO metadata…'); reload(); }
+    catch(e){ say(e.message,'err'); }
+    setBusy(false);
+  };
+  const saveMeta = async () => {
+    try{
+      await api(`/projects/${d.id}/metadata`, {method:'PUT', body:{...form, tags: tagText.split(',').map(x=>x.trim()).filter(Boolean)}});
+      say('Metadata saved ✓'); reload();
+    }catch(e){ say(e.message,'err'); }
+  };
+  const approveMeta = async () => {
+    try{
+      await saveMeta();
+      await api(`/projects/${d.id}/metadata/approve`, {method:'POST'});
+      say('Metadata approved ✅'); reload();
+    }catch(e){ say(e.message,'err'); }
+  };
+  const regenThumb = async () => {
+    try{ await api(`/projects/${d.id}/thumbnail/regenerate`, {method:'POST'}); say('Making a new thumbnail…'); reload(); }
+    catch(e){ say(e.message,'err'); }
+  };
+  const connect = async () => {
+    try{
+      const r = await api('/youtube/auth-url');
+      window.open(r.url, '_blank');
+      say('Complete Google consent in the new tab, then come back here.');
+      setTimeout(reloadYt, 4000);
+    }catch(e){ say(e.message,'err'); }
+  };
+  const uploadNow = async () => {
+    if (!agree) return say('Tick the confirmation box first','err');
+    setBusy(true);
+    try{
+      const r = await api(`/projects/${d.id}/upload`, {method:'POST', body:{confirm:true, privacy: form.privacy||'private'}});
+      say('Upload started — you can watch progress here.'); reload();
+    }catch(e){ say(e.message,'err'); }
+    setBusy(false);
+  };
+  return (
+    <React.Fragment>
+      <div className="card">
+        <h3>📺 YouTube Metadata</h3>
+        <div className="sub">AI-written title, description, tags & thumbnail — edit freely, then approve.</div>
+        {!d.metadata && <button className="btn primary" onClick={genMeta} disabled={busy}>✨ Generate with AI</button>}
+        {d.metadata && (
+        <div className="grid2">
+          <div>
+            <label className="f">Title ({(form.title||'').length}/100)</label>
+            <input type="text" maxLength={100} value={form.title||''} onChange={e=>setForm(f=>({...f,title:e.target.value}))}/>
+            <label className="f">Description</label>
+            <textarea rows="9" value={form.description||''} onChange={e=>setForm(f=>({...f,description:e.target.value}))}/>
+            <label className="f">Tags (comma separated)</label>
+            <textarea rows="2" value={tagText} onChange={e=>setTagText(e.target.value)}/>
+            <div className="grid2">
+              <div><label className="f">Visibility</label>
+                <select value={form.privacy||'private'} onChange={e=>setForm(f=>({...f,privacy:e.target.value}))}>
+                  <option value="private">Private</option><option value="unlisted">Unlisted</option><option value="public">Public</option>
+                </select>
+              </div>
+              <div><label className="f">Category</label>
+                <select value={form.category||'10'} onChange={e=>setForm(f=>({...f,category:e.target.value}))}>
+                  <option value="10">Music</option><option value="24">Entertainment</option><option value="1">Film & Animation</option><option value="22">People & Blogs</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex wrap" style={{marginTop:12}}>
+              <button className="btn" onClick={genMeta} disabled={busy}>🔄 Regenerate</button>
+              <button className="btn" onClick={saveMeta}>💾 Save</button>
+              {!metaApproved && <button className="btn green" onClick={approveMeta}>✅ Approve Metadata</button>}
+              {metaApproved && <Badge s="approved"/>}
+            </div>
+            <label className="f">Hashtags</label>
+            <div>{(form.hashtags||[]).map(h=><span key={h} className="tag" style={{color:'var(--blue)'}}>{h}</span>)}</div>
+          </div>
+          <div>
+            <label className="f">Thumbnail</label>
+            <div className="flex wrap" style={{alignItems:'flex-start'}}>
+              {d.metadata.thumbnail_url ? <div className="thumbbox"><img src={d.metadata.thumbnail_url+'?t='+Date.now()} alt="thumbnail"/></div> : <div className="empty">No thumbnail yet</div>}
+              <button className="btn sm" onClick={regenThumb}>🔄 New thumbnail</button>
+            </div>
+          </div>
+        </div>
+        )}
+      </div>
+      <div className="card">
+        <h3>🚀 Approve & Upload</h3>
+        <div className="sub">SongForge <b>never uploads automatically</b>. Upload happens only when YOU click the button below — after video final approval + metadata approval.</div>
+        <div className="kv"><b>Video</b> {finalDone? <Badge s="approved"/> : <span className="mut">needs final approval (Review step)</span>}</div>
+        <div className="kv"><b>Metadata</b> {metaApproved? <Badge s="approved"/> : <span className="mut">needs metadata approval</span>}</div>
+        <div className="kv"><b>YouTube</b> {yt&&yt.connected? <span style={{color:'var(--green)'}}>connected ✓</span> :
+          <button className="btn sm violet" onClick={connect}>Connect YouTube (Google OAuth)</button>}</div>
+        {uploadRes && uploadRes.status==='done' && (
+          <div className="fb" style={{borderColor:'#14532d'}}>
+            🎉 <b>Uploaded!</b> <a href={uploadRes.url} target="_blank">{uploadRes.url}</a> <span className="mut small">({uploadRes.privacy})</span>
+          </div>
+        )}
+        {uploadRes && uploadRes.status==='running' && <div className="fb">⬆️ Uploading to YouTube… you'll see the link here when done.</div>}
+        {uploadRes && uploadRes.status==='failed' && <div className="fb" style={{borderColor:'#7f1d1d',color:'#fca5a5'}}>Upload failed: {uploadRes.error}</div>}
+        <div className="flex wrap" style={{marginTop:12}}>
+          <label className="chip" style={{cursor:'pointer'}}>
+            <input type="checkbox" checked={agree} onChange={e=>setAgree(e.target.checked)}/>
+            I approve uploading this video to YouTube as configured above
+          </label>
+          <button className="btn green big" disabled={busy || !finalDone || !metaApproved || !(yt&&yt.connected) || !agree} onClick={uploadNow}>
+            🚀 Approve & Upload
+          </button>
+        </div>
+        {!(yt&&yt.connected) && <div className="mut small" style={{marginTop:8}}>Connect YouTube first (one-time Google OAuth). See Settings for the .env setup.</div>}
+      </div>
+    </React.Fragment>
+  );
+}
+
+/* ---------------- Settings modal ---------------- */
+function Settings({providers, onClose, say}){
+  if (!providers) return null;
+  const Row = ({title, active, detail, how}) => (
+    <div className="fb">
+      <div className="flex between"><b>{title}</b><Badge s={active? 'done':'pending'}/></div>
+      <div className="mut small" style={{marginTop:4}}>{detail}</div>
+      <div className="small" style={{marginTop:6, color:'#b9c7e6'}}>{how}</div>
+    </div>
+  );
+  return (
+    <div className="modalbg" onClick={onClose}>
+      <div className="modal" onClick={e=>e.stopPropagation()}>
+        <h3 style={{marginTop:0}}>⚙ System & AI Providers</h3>
+        <div className="sub mut">SongForge is local-first. Everything below runs free on your machine; cloud APIs can be added via the provider interface later.</div>
+        <Row title={'LLM — '+providers.llm.active}
+             active={providers.llm.active!=='mock'}
+             detail={providers.llm.active==='mock' ? 'Using built-in offline templates (zero setup). '+(providers.llm.ollama_reachable?'':'Ollama not detected.')
+                     : 'Ollama detected at '+providers.llm.model}
+             how={'For real AI lyrics: install Ollama, run  ollama pull llama3.1  then restart. Or set LLM_PROVIDER / OPENAI_* in .env for cloud APIs.'}/>
+        <Row title={'Images — '+providers.image.active}
+             active={providers.image.active!=='placeholder'}
+             detail={providers.image.active==='openmontage' ? 'OpenMontage local diffusion (Stable Diffusion) is generating your scene art.'
+                     : providers.image.active==='comfyui' ? 'ComfyUI / Stable Diffusion detected.' : 'Cinematic placeholder art (works fully offline).'}
+             how={'For AI scene art with OpenMontage: clone calesthio/OpenMontage, pip install diffusers torch, point OPENMONTAGE_REPO at it — the same install powers scene animation. (ComfyUI also supported.)'}/>
+        <Row title={'Lyric sync — '+providers.aligner.active}
+             active={providers.aligner.active==='whisperx'}
+             detail={providers.aligner.active==='whisperx' ? 'WhisperX word-level alignment active.' : 'Beat/section-weighted timing estimate (no heavy deps).'}
+             how={'For word-perfect sync:  pip install -r requirements-whisperx.txt  (installs PyTorch — optional).'}/>
+        <Row title={'Lyrics extraction — '+providers.asr.active}
+             active={providers.asr.active!=='mock'}
+             detail={providers.asr.active==='faster-whisper' ? 'Local speech-to-text (model: '+providers.asr.model+') — extracts lyrics from any song.' : 'Demo extractor only. Install faster-whisper for real transcription.'}
+             how={'pip install -r requirements-asr.txt   (free, local, multilingual — Hindi works too).'}/>
+        <Row title={'Video animation — '+providers.video.active}
+             active={providers.video.active!=='ffmpeg-motion'}
+             detail={providers.video.active==='char-animated' ? 'Character animation via AnimatedDrawings (Meta, MIT) — rig + real motion clips (dance/jump/wave).'
+                     : providers.video.active==='comfyui' ? 'ComfyUI image-to-video: free open-source models (SVD / AnimateDiff / Wan / LTX).'
+                     : 'FFmpeg Ken-Burns motion (fast, zero setup). Character & AI animation are optional upgrades.'}
+             how={'Character animation (free, CPU): facebookresearch/AnimatedDrawings via CHAR_ANIM_REPO. Diffusion engines: calesthio/OpenMontage (LTX-2/Wan/Hunyuan/CogVideoX) via OPENMONTAGE_REPO, or ComfyUI / diffusers — see README.'}/>
+        <Row title={'Video render — FFmpeg'}
+             active={providers.ffmpeg.ffmpeg_found}
+             detail={providers.ffmpeg.ffmpeg_found? 'FFmpeg + ffprobe found.' : 'FFmpeg NOT found — renders will fail.'}
+             how={'Windows: winget install ffmpeg   ·   Mac: brew install ffmpeg   ·   Linux: sudo apt install ffmpeg'}/>
+        <Row title={'Database'} active detail={'SQLite at '+providers.data_dir} how={'Set DATABASE_URL for PostgreSQL. All media lives in data/projects/<id>/.'}/>
+        <div className="flex" style={{justifyContent:'flex-end'}}><button className="btn" onClick={onClose}>Close</button></div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- Root ---------------- */
+function Root(){
+  const [projects, setProjects] = useState([]);
+  const [pid, setPid] = useState(null);
+  const [d, setD] = useState(null);
+  const [step, setStep] = useState('idea');
+  const [providers, setProviders] = useState(null);
+  const [yt, setYt] = useState(null);
+  const [toast, setToast] = useState(null);
+  const [activeJobs, setActiveJobs] = useState([]);
+  const [showNew, setShowNew] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [auto, setAuto] = useState(()=> (localStorage.getItem('sf_autopilot') ?? '1') === '1');
+  const tRef = useRef(null);
+  const apLock = useRef('');
+  const autoFn = useRef(()=>{});
+  const toggleAuto = ()=> setAuto(v=>{ localStorage.setItem('sf_autopilot', v?'0':'1'); return !v; });
+
+  const say = useCallback((msg, kind='')=>{
+    if (tRef.current) clearTimeout(tRef.current);
+    setToast({msg, kind});
+    tRef.current = setTimeout(()=>setToast(null), 4500);
+  },[]);
+  const loadProjects = useCallback(()=>api('/projects').then(setProjects).catch(()=>{}),[]);
+  const reload = useCallback(()=>{ if(pid) api('/projects/'+pid).then(setD).catch(()=>{}); loadProjects(); },[pid]);
+  const loadYt = useCallback(()=>api('/youtube/status').then(setYt).catch(()=>{}),[]);
+
+  useEffect(()=>{ loadProjects(); api('/system/providers').then(setProviders).catch(()=>{}); loadYt(); },[]);
+  useEffect(()=>{ reload(); },[pid]);
+
+  useEffect(()=>{
+    let stop = false;
+    const tick = async () => {
+      if (stop) return;
+      try{
+        const all = await api('/projects');
+        const list = [];
+        for (const p of all){
+          const det = await api('/projects/'+p.brief.id);
+          (det.jobs||[]).forEach(j=>{ if(j.status==='running'||j.status==='queued') list.push({...j, proj:p.brief.title}); });
+          if (p.brief.id===pid){ setD(det); autoFn.current(det); }
+        }
+        setActiveJobs(list);
+        if (list.length) loadProjects();
+      }catch(e){}
+      if (!stop) setTimeout(tick, 1800);
+    };
+    tick();
+    return ()=>{stop=true;};
+  },[pid]);
+
+  /* Autopilot: song imported -> extract lyrics (auto-approved server-side)
+     -> storyboard -> approve -> scene art -> render. Each step only fires when
+     nothing else is running; AI-lyrics projects still wait for manual approval. */
+  const maybeAuto = (d)=>{
+    if (!auto || !d || !d.id) return;
+    const busy = activeJobs.some(j=>j.project_id===d.id);
+    if (busy){ apLock.current=''; return; }
+    const scenes = (d.storyboard && d.storyboard.scenes) || [];
+    const imgsDone = scenes.length>0 && scenes.every(s=>s.image_status==='done');
+    const renderOk = d.latest_render && d.latest_render.status==='done';
+    let act=null, label='';
+    if (d.song && d.analysis && !d.lyrics){
+      act = ()=>api(`/projects/${d.id}/lyrics/extract`, {method:'POST'});
+      label = 'Extracting lyrics from your song…';
+    } else if (d.lyrics && d.lyrics.status==='approved' && !d.storyboard){
+      act = ()=>api(`/projects/${d.id}/storyboard/generate`, {method:'POST'});
+      label = 'Designing the storyboard…';
+    } else if (d.storyboard && d.storyboard.status==='draft' && scenes.length>0){
+      act = async()=>{ await api(`/projects/${d.id}/storyboard/approve`, {method:'POST'});
+                       await api(`/projects/${d.id}/scenes/generate`, {method:'POST'}); };
+      label = 'Approving storyboard & creating scene art…';
+    } else if (d.storyboard && d.storyboard.status==='approved' && !imgsDone){
+      act = ()=>api(`/projects/${d.id}/scenes/generate`, {method:'POST'});
+      label = 'Generating scene art…';
+    } else if (imgsDone && !renderOk){
+      act = ()=>api(`/projects/${d.id}/render`, {method:'POST', body:{resolution:'1280x720', fps:30}});
+      label = 'Rendering your video…';
+    }
+    if (!act){ apLock.current=''; return; }
+    const key = label+':'+d.id;
+    if (apLock.current === key) return;
+    apLock.current = key;
+    say('⚡ ' + label);
+    Promise.resolve(act()).catch(e=>{ say(e.message,'err'); apLock.current=''; });
+    setTimeout(()=>{ if (apLock.current===key) apLock.current=''; }, 20000);
+  };
+  autoFn.current = maybeAuto;
+
+  const created = (id)=>{ setPid(id); setStep('lyrics'); };
+  const st = d ? computeStatus(d) : {doneSteps:[]};
+  const currentJob = activeJobs.find(j=>j.project_id===pid);
+
+  const go = (s)=> setStep(s);
+
+  return (
+    <div id="app">
+      <Sidebar projects={projects} pid={pid} onNew={()=>setShowNew(true)} onPick={(id)=>setPid(id)}
+               providers={providers} onSettings={()=>setShowSettings(true)} yt={yt} onConnectYt={()=>setShowSettings(true)}/>
+      <div className="main">
+        {!d && <div className="card"><div className="empty">
+          <div style={{fontSize:44,marginBottom:10}}>🎵</div>
+          <b>Welcome to SongForge</b><br/>Your free, local-first AI music-video studio.<br/>Import a song and Autopilot does the rest: extract lyrics → approve → storyboard → scene art → animated video.<br/>
+          <button className="btn primary big" onClick={()=>setShowNew(true)}>＋ Create your first song</button>
+          <div className="mut small" style={{marginTop:14}}>Idea → AI lyrics → your approval → song → storyboard → scenes → video → feedback → YouTube (only with your final click).</div>
+        </div></div>}
+        {d && (
+          <React.Fragment>
+            <div className="h1">{d.title}
+              <span className="chip"><span className="d" style={{background:statusColor(d.status)}}></span>{d.status.replace(/_/g,' ')}</span>
+              {d.language==='hi' && <span className="chip">🇮🇳 Hindi</span>}
+              <span className="chip" style={{cursor:'pointer',userSelect:'none'}}
+                    onClick={toggleAuto}
+                    title="Autopilot: extract lyrics → auto-approve → storyboard → scene art → video, hands-free. AI-written lyrics always wait for your approval.">
+                ⚡ Autopilot {auto ? 'ON' : 'OFF'}
+              </span>
+            </div>
+            <StepNav steps={STEPS} active={step} onGo={go} status={st}/>
+            {step==='idea' && <IdeaPanel d={d} reload={reload} say={say} go={go}/>}
+            {step==='lyrics' && <LyricsPanel d={d} reload={reload} say={say} go={go}/>}
+            {step==='song' && <SongPanel d={d} reload={reload} say={say} go={go}/>}
+            {step==='storyboard' && <StoryboardPanel d={d} reload={reload} say={say} go={go}/>}
+            {step==='scenes' && <ScenesPanel d={d} reload={reload} say={say} go={go}/>}
+            {step==='video' && <VideoPanel d={d} reload={reload} say={say} go={go}/>}
+            {step==='review' && <ReviewPanel d={d} reload={reload} say={say} go={go}/>}
+            {step==='publish' && <PublishPanel d={d} reload={reload} say={say} go={go} yt={yt} reloadYt={loadYt}/>}
+          </React.Fragment>
+        )}
+      </div>
+      {showNew && <NewProject onClose={()=>setShowNew(false)} onCreated={created} say={say}/>}
+      {showSettings && <Settings providers={providers} onClose={()=>{setShowSettings(false); api('/system/providers').then(setProviders).catch(()=>{});}} say={say}/>}
+      {currentJob && (
+        <div className="jobbar">
+          <span className="small" style={{minWidth:230}}>
+            <b>{currentJob.type.split('.').join(' → ')}</b><br/>
+            <span className="mut">{currentJob.message || 'working…'}</span>
+          </span>
+          <div className="bar"><div style={{width:(currentJob.progress||0)+'%'}}/></div>
+          <b style={{minWidth:44, textAlign:'right'}}>{Math.round(currentJob.progress||0)}%</b>
+        </div>
+      )}
+      {toast && <div className={'toast '+toast.kind}>{toast.msg}</div>}
+    </div>
+  );
+}
+
+/* ---------------- Idea panel (project settings) ---------------- */
+function IdeaPanel({d, reload, say, go}){
+  const [form, setForm] = useState({title:d.title, idea:d.idea, language:d.language, genre:d.genre, mood:d.mood, visual_style:d.visual_style});
+  useEffect(()=>{ setForm({title:d.title, idea:d.idea, language:d.language, genre:d.genre, mood:d.mood, visual_style:d.visual_style}); },[d.id]);
+  const save = async () => {
+    try{
+      await api('/projects/'+d.id, {method:'PUT', body:form});
+      say('Project updated ✓'); reload();
+      if (!d.lyrics){ await api(`/projects/${d.id}/lyrics/generate`, {method:'POST'}); say('Generating lyrics…'); }
+      go('lyrics');
+    }catch(e){ say(e.message,'err'); }
+  };
+  return (
+    <div className="card">
+      <h3>💡 Song Idea</h3>
+      <div className="sub">This is what the AI uses to write your lyrics and design the video.</div>
+      <label className="f">Idea</label>
+      <textarea rows="3" value={form.idea} onChange={e=>setForm(f=>({...f,idea:e.target.value}))}/>
+      <div className="grid2">
+        <div><label className="f">Title</label><input type="text" value={form.title} onChange={e=>setForm(f=>({...f,title:e.target.value}))}/></div>
+        <div><label className="f">Language</label>
+          <select value={form.language} onChange={e=>setForm(f=>({...f,language:e.target.value}))}>
+            <option value="hi">Hindi</option><option value="en">English</option><option value="hi-en">Hinglish</option>
+          </select></div>
+        <div><label className="f">Genre</label><input type="text" value={form.genre} onChange={e=>setForm(f=>({...f,genre:e.target.value}))}/></div>
+        <div><label className="f">Mood</label><input type="text" value={form.mood} onChange={e=>setForm(f=>({...f,mood:e.target.value}))}/></div>
+      </div>
+      <label className="f">Visual style</label>
+      <input type="text" value={form.visual_style} onChange={e=>setForm(f=>({...f,visual_style:e.target.value}))}/>
+      <div className="flex" style={{marginTop:14}}>
+        <button className="btn primary" onClick={save}>{d.lyrics? '💾 Save & open lyrics editor':'💾 Save & write lyrics with AI'}</button>
+        {d.lyrics && <button className="btn" onClick={()=>go('lyrics')}>Go to lyrics →</button>}
+      </div>
+      <div style={{marginTop:18}} className="grid3">
+        <div className="lyrsec"><div className="nm" style={{color:'var(--blue)'}}>Workflow</div>
+          <div className="mut small">Idea → Lyrics → <b>your approval</b> → Song → Storyboard → Scenes → Video → <b>your review</b> → Revisions → <b>final approval</b> → Metadata → <b>Approve & Upload</b>.</div></div>
+        <div className="lyrsec"><div className="nm" style={{color:'var(--amber)'}}>Music (MVP)</div>
+          <div className="mut small">Generate your song in Suno with the approved lyrics, download the MP3/WAV, and import it in the Song step. A free local demo track is included for testing.</div></div>
+        <div className="lyrsec"><div className="nm" style={{color:'var(--violet)'}}>100% free/local</div>
+          <div className="mut small">Ollama for text, ComfyUI for art (placeholder art until connected), WhisperX for sync, FFmpeg for render, SQLite storage.</div></div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- Error boundary (never show a blank screen) ---------------- */
+class ErrorBoundary extends React.Component {
+  constructor(props){ super(props); this.state = { err: null }; }
+  static getDerivedStateFromError(err){ return { err }; }
+  render(){
+    if (this.state.err){
+      return (
+        <div style={{maxWidth:760, margin:'60px auto', padding:'28px', background:'var(--panel,#121a30)',
+                     border:'1px solid #7f1d1d', borderRadius:16, color:'var(--txt,#e6ecff)', fontFamily:'system-ui'}}>
+          <h2 style={{marginTop:0}}>⚠️ The UI hit an unexpected error</h2>
+          <pre style={{whiteSpace:'pre-wrap', color:'#fca5a5', fontSize:12.5, background:'#0d1426', padding:12, borderRadius:10}}>
+{String(this.state.err && (this.state.err.stack || this.state.err.message) || this.state.err).slice(0,1200)}
+          </pre>
+          <p className="mut" style={{fontSize:13}}>Your project data is safe — background jobs keep running on the server.</p>
+          <button className="btn" onClick={()=>this.setState({err:null})}>Try to continue</button>{' '}
+          <button className="btn primary" onClick={()=>location.reload()}>Reload the studio</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+ReactDOM.createRoot(document.getElementById('app')).render(<ErrorBoundary><Root/></ErrorBoundary>);
+</script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+# SongForge — full stack (backend+frontend). Optional Ollama/ComfyUI profiles.
+#
+#   docker compose up --build            # SongForge only (mock LLM + placeholder art)
+#   docker compose --profile ollama up   # + Ollama (pull a model first: see README)
+#   docker compose --profile comfy up    # + ComfyUI (download an SDXL checkpoint first)
+services:
+  songforge:
+    build: .
+    ports: ["8000:8000"]
+    volumes:
+      - songforge-data:/data
+      - ./backend/fonts:/srv/songforge/backend/fonts:ro
+    environment:
+      DATABASE_URL: sqlite:////data/songforge.db
+      LLM_PROVIDER: auto
+      OLLAMA_URL: http://ollama:11434        # used when the ollama profile is up
+      COMFY_URL: http://comfyui:8188         # used when the comfy profile is up
+      YOUTUBE_CLIENT_ID: ${YOUTUBE_CLIENT_ID:-}
+      YOUTUBE_CLIENT_SECRET: ${YOUTUBE_CLIENT_SECRET:-}
+      YOUTUBE_REDIRECT_URI: ${YOUTUBE_REDIRECT_URI:-http://localhost:8000/api/youtube/callback}
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama:latest
+    profiles: ["ollama"]
+    ports: ["11434:11434"]
+    volumes: [ollama-models:/root/.ollama]
+    restart: unless-stopped
+
+  comfyui:
+    image: Yanwk/comfyui-boot:cu124          # NVIDIA GPU required
+    profiles: ["comfy"]
+    ports: ["8188:8188"]
+    volumes: [comfy-models:/root/ComfyUI/models]
+    restart: unless-stopped
+
+volumes:
+  songforge-data:
+  ollama-models:
+  comfy-models:

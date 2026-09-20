@@ -1,0 +1,22 @@
+# SongForge backend (FFmpeg included via apt)
+FROM python:3.12-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg fonts-noto-core fonts-noto-ui-core \
+ && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /srv/songforge
+
+COPY backend/requirements.txt backend/requirements.txt
+RUN pip install --no-cache-dir -r backend/requirements.txt
+
+COPY backend backend
+COPY frontend frontend
+COPY fonts fonts
+
+WORKDIR /srv/songforge/backend
+ENV DATA_DIR=/data
+VOLUME ["/data"]
+EXPOSE 8000
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

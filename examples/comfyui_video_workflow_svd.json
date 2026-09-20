@@ -1,0 +1,66 @@
+{
+  "_comment": "Stable Video Diffusion image-to-video — ComfyUI API-format template for SongForge. Tokens get replaced at render time: __IMAGE__ __PROMPT__ __NEGATIVE__ __SEED__ __FRAMES__ __FPS__ __WIDTH__ __HEIGHT__. Adapt node names to your ComfyUI version / custom nodes if needed, then set COMFY_VIDEO_WORKFLOW to this file.",
+  "5": {
+    "class_type": "CLIPVisionLoader",
+    "inputs": { "clip_name": "clip_vision_g.safetensors" }
+  },
+  "6": {
+    "class_type": "VAELoader",
+    "inputs": { "vae_name": "svd.safetensors" }
+  },
+  "7": {
+    "class_type": "UNETLoader",
+    "inputs": { "unet_name": "svd.safetensors", "weight_dtype": "default" }
+  },
+  "10": {
+    "class_type": "LoadImage",
+    "inputs": { "image": "__IMAGE__", "upload": "image" }
+  },
+  "11": {
+    "class_type": "SVD_img2vid_Conditioning",
+    "inputs": {
+      "clip_vision": ["5", 0],
+      "init_image": ["10", 0],
+      "vae": ["6", 0],
+      "width": "__WIDTH__",
+      "height": "__HEIGHT__",
+      "length": "__FRAMES__",
+      "batch_size": 1,
+      "motion_scale": 1.0
+    }
+  },
+  "12": {
+    "class_type": "VideoLinearCFGGuidance",
+    "inputs": { "model": ["7", 0], "min_cfg": 1.0 }
+  },
+  "13": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": "__SEED__",
+      "steps": 20,
+      "cfg": 2.5,
+      "sampler_name": "euler",
+      "scheduler": "karras",
+      "denoise": 1.0,
+      "model": ["12", 0],
+      "positive": ["11", 0],
+      "negative": ["11", 1],
+      "latent_image": ["11", 2]
+    }
+  },
+  "14": {
+    "class_type": "VAEDecode",
+    "inputs": { "samples": ["13", 0], "vae": ["6", 0] }
+  },
+  "15": {
+    "class_type": "SaveWEBP",
+    "inputs": {
+      "images": ["14", 0],
+      "filename_prefix": "songforge_svd",
+      "fps": "__FPS__",
+      "lossless": false,
+      "quality": 88,
+      "method": "default"
+    }
+  }
+}
