@@ -55,7 +55,7 @@ isn't running — chain: `ollama → free → mock`.
 | Preset | Get free key | Default model | `backend/.env` |
 |---|---|---|---|
 | **Groq** (fastest) | console.groq.com/keys | `llama-3.3-70b-versatile` | `FREE_LLM_PRESET=groq` + `FREE_LLM_API_KEY=gsk_…` |
-| **Google Gemini** | aistudio.google.com/apikey | `gemini-2.5-flash` | `FREE_LLM_PRESET=gemini` + `FREE_LLM_API_KEY=…` |
+| **Google Gemini** | aistudio.google.com/apikey | `gemini-3.6-flash` | `FREE_LLM_PRESET=gemini` + `FREE_LLM_API_KEY=…` |
 | **OpenRouter** `:free` | openrouter.ai/keys | `meta-llama/llama-3.3-70b-instruct:free` | `FREE_LLM_PRESET=openrouter` + `FREE_LLM_API_KEY=sk-or-…` |
 | Custom endpoint | any OpenAI-compatible URL | your choice | `FREE_LLM_PRESET=custom` + `FREE_LLM_BASE_URL` / `FREE_LLM_MODEL` / `FREE_LLM_API_KEY` |
 

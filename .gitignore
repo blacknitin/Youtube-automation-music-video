@@ -20,3 +20,8 @@ frontend/dist/
 # misc
 .DS_Store
 *.log
+
+# env secrets (real API keys) — never commit
+.env
+backend/.env
+**/.env
