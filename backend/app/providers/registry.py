@@ -67,6 +67,11 @@ def _nlp_ok() -> bool:
     from .nlp_hf import nlp_enabled
     return nlp_enabled()
 
+
+def get_music_provider():
+    from .music_musicgen import get_music_provider as _g
+    return _g()
+
 class _SafeLLM:
     """Runtime-fallback wrapper: if the active LLM provider throws at request
     time (quota, network, bad JSON), the offline template writer answers
@@ -224,7 +229,8 @@ def system_status() -> dict:
                 "free": FreeLLMProvider().info(),
                 "hf_local": {"model": SETTINGS.hf_llm_model,
                              "installed": HFLocalLLMProvider().available()},
-                "nlp": {"enabled": _nlp_ok(), "transformers_installed": _nlp_installed()}},
+                "nlp": {"enabled": _nlp_ok(), "transformers_installed": _nlp_installed()},
+                "music": get_music_provider().info()},
         "image": {"active": img.name, "configured": SETTINGS.image_provider,
                   "comfyui_reachable": _comfy_ok(),
                   "openmontage_art": isinstance(img, OpenMontageImageProvider)},

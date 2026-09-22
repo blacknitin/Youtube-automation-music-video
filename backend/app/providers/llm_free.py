@@ -109,11 +109,15 @@ class FreeLLMProvider(StructuredLLMMixin):
             "temperature": SETTINGS.llm_temperature,
             "max_tokens": max_tokens,
         }
+        import time
         with httpx.Client(timeout=600.0) as client:
-            r = client.post(f"{self.base_url}/chat/completions", json=payload, headers=headers)
-            if r.status_code in (400, 404, 422):
-                # some free endpoints reject response_format — already omitted; retry bare
+            for attempt in range(3):
                 r = client.post(f"{self.base_url}/chat/completions", json=payload, headers=headers)
+                if r.status_code == 429 and attempt < 2:
+                    # free-tier per-minute limit: back off and retry twice
+                    time.sleep(20 * (attempt + 1))
+                    continue
+                break
             r.raise_for_status()
             data = r.json()
         try:

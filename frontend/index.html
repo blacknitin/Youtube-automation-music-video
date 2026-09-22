@@ -536,6 +536,13 @@ function SongPanel({d, reload, say, go}){
     catch(e){ say(e.message,'err'); }
     setBusy(false);
   };
+  const genSong = async () => {
+    setBusy(true);
+    try{ await api(`/projects/${d.id}/song/generate`, {method:'POST', body: JSON.stringify({seconds: 20})});
+         say('AI is composing an original track (MusicGen)…'); reload(); }
+    catch(e){ say(e.message,'err'); }
+    setBusy(false);
+  };
   const extract = async () => {
     setBusy(true);
     try{ await api(`/projects/${d.id}/lyrics/extract`, {method:'POST'});
@@ -587,6 +594,7 @@ function SongPanel({d, reload, say, go}){
             </div>
             <div className="flex" style={{marginTop:14, justifyContent:'center'}}>
               <button className="btn violet" disabled={busy} onClick={demo}>🎹 Use free local demo track</button>
+              <button className="btn violet" disabled={busy} onClick={genSong}>🤖 AI compose a song (MusicGen)</button>
             </div>
             <div className="mut small" style={{textAlign:'center',marginTop:8}}>
               Tip: In Suno, use “Custom” mode with your approved lyrics, then import the result here.

@@ -111,6 +111,17 @@ def demo_song(pid: int, db: Session = Depends(get_db_dep)):
     return job_json(job)
 
 
+@router.post("/projects/{pid}/song/generate")
+def generate_song(pid: int, body: dict | None = None, db: Session = Depends(get_db_dep)):
+    """AI song generation (MusicGen — original royalty-free instrumental)."""
+    _project(db, pid)
+    payload = {"project_id": pid}
+    if body and body.get("seconds"):
+        payload["seconds"] = float(body["seconds"])
+    job = enqueue(db, "song.generate", pid, payload)
+    return job_json(job)
+
+
 @router.get("/songs/{sid}/file")
 def song_file(sid: int, db: Session = Depends(get_db_dep)):
     from ..media import media_file_response

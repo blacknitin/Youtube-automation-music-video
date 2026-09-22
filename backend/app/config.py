@@ -44,6 +44,10 @@ class Settings:
         self.hf_llm_model = os.getenv("HF_LLM_MODEL", "EleutherAI/gpt-neo-125M")
         self.nlp_enabled = os.getenv("NLP_ENABLED", "")          # "1" forces NLP on
         self.nlp_auto = os.getenv("NLP_AUTO", "0") == "1"        # auto-on if transformers installed
+        # AI song generation — MusicGen (audiocraft model via transformers, free)
+        self.music_provider = os.getenv("MUSIC_PROVIDER", "auto")   # musicgen | synth | auto
+        self.musicgen_model = os.getenv("MUSICGEN_MODEL", "facebook/musicgen-small")
+        self.musicgen_seconds = int(os.getenv("MUSICGEN_SECONDS", "20"))
         self.openai_base_url = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
         self.openai_api_key = os.getenv("OPENAI_API_KEY", "")
         self.openai_model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")

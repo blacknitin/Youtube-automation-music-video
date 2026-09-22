@@ -59,6 +59,15 @@ isn't running — chain: `ollama → free → mock`.
 | **OpenRouter** `:free` | openrouter.ai/keys | `meta-llama/llama-3.3-70b-instruct:free` | `FREE_LLM_PRESET=openrouter` + `FREE_LLM_API_KEY=sk-or-…` |
 | Custom endpoint | any OpenAI-compatible URL | your choice | `FREE_LLM_PRESET=custom` + `FREE_LLM_BASE_URL` / `FREE_LLM_MODEL` / `FREE_LLM_API_KEY` |
 
+### 2b. AI song generation (MusicGen — no upload needed)
+The song step now has three ways to get music:
+1. **Import your Suno MP3** (vocals — the recommended main path)
+2. **🤖 AI compose a song (MusicGen)** — the LLM writes a music brief, then audiocraft's
+   MusicGen (via transformers) composes an original instrumental locally
+   (`MUSIC_PROVIDER=auto`, ~3GB RAM, GPU = fast; small machines auto-fall-back to the built-in synth)
+3. **🎹 Free local demo track** — instant numpy-synth loop
+
+All three feed the same analysis pipeline (BPM, sections, energy).
 All three presets have generous free tiers — a full song (storyboard + ~10-25 scene
 prompts) costs nothing. Restart SongForge after editing `.env`; the sidebar chip shows
 `LLM: free (groq)` style status via **System → providers**.
@@ -181,7 +190,7 @@ Every free/open-source repo SongForge builds on (or intentionally doesn't), and 
 | [jiaaro/pydub](https://github.com/jiaaro/pydub) | Audio utility for future quick edits | ✅ available (installed with `requirements-ai.txt`) |
 | [slhck/ffmpeg-normalize](https://github.com/slhck/ffmpeg-normalize) | Loudness normalization | ⚠️ optional add-on if you want broadcast loudness targets |
 | [CompVis/stable-diffusion](https://github.com/CompVis/stable-diffusion) | Scene ART engine (via diffusers `StableDiffusionPipeline` behind OpenMontage's LocalDiffusion / ComfyUI) | ✅ integrated by proxy (real repo → GPU) |
-| [facebookresearch/audiocraft](https://github.com/facebookresearch/audiocraft) (MusicGen) | Demo-song synthesis upgrade | ⚙️ optional GPU extra — CPU uses the built-in numpy synth |
+| [facebookresearch/audiocraft](https://github.com/facebookresearch/audiocraft) (MusicGen) | **AI song generation**: "🤖 AI compose a song" writes an original royalty-free instrumental (LLM-written music brief → MusicGen) | ✅ integrated (`providers/music_musicgen.py`, `POST /projects/{id}/song/generate`; needs ~3GB RAM — auto-falls-back to the built-in synth on small machines) |
 | [riffusion/riffusion](https://github.com/riffusion/riffusion) | Music generation alternative | ⚙️ optional future engine behind the provider interface |
 | [FluidSynth/fluidsynth](https://github.com/FluidSynth/fluidsynth) | MIDI→WAV rendering for demo instrumentals | ⚙️ optional on your machine (`apt install fluidsynth`) |
 | [svc-develop-team/so-vits-svc](https://github.com/svc-develop-team/so-vits-svc) | Voice conversion | ❌ out of scope: vocals come from Suno imports |

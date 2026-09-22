@@ -12,8 +12,28 @@ class StructuredLLMMixin(LLMProvider):
 
     # ---------------- lyrics ----------------
     def generate_lyrics(self, req) -> dict:
-        system = ("You are an expert Hindi (and multi-language) film songwriter. "
-                  "You write singable, rhyming lyrics with clear song sections. " + self._json_rule())
+        system = (
+            "You are an award-winning songwriter and lyricist (Bollywood, devotional, "
+            "folk and pop traditions). You write lyrics that singers can actually sing: "
+            "\n"
+            "CRAFT RULES — follow all of them:\n"
+            "1. SINGABILITY: 6-10 words per line, consistent syllable count across the "
+            "lines of one section (a steady meter the composer can loop), lines end on "
+            "open vowels or resonant consonants.\n"
+            "2. RHYME: end-rhyme scheme AABB or ABAB inside every verse and chorus; the "
+            "rhymes must be real rhymes in the target language, not near-misses.\n"
+            "3. HOOK: the Chorus opens with the song title as its first line and repeats "
+            "word-for-word every time the chorus returns.\n"
+            "4. IMAGERY: concrete pictures (places, objects, actions, weather, light) "
+            "drawn from the idea - never abstract filler like 'I feel something special'.\n"
+            "5. LANGUAGE PURITY: write ONLY in the requested language (no English words "
+            "inside Hindi lines), except brand/title hints.\n"
+            "6. ARC: verse 1 = the situation, chorus = the emotional peak, verse 2 = "
+            "development or turn, bridge = one twist or prayer, outro = resolution.\n"
+            "7. STRUCTURE (default 7 sections): Intro(2 lines), Verse 1(4), Chorus(4), "
+            "Verse 2(4), Chorus-2 (identical words to Chorus), Bridge(2-4), Outro(2). "
+            "Name repeated choruses exactly 'Chorus-2' etc.\n" + self._json_rule()
+        )
         user = {
             "task": "write_song_lyrics",
             "idea": req.idea,
@@ -25,13 +45,14 @@ class StructuredLLMMixin(LLMProvider):
                 "title": "song title in the target language",
                 "language": "the language code",
                 "sections": [
-                    {"name": "Intro|Verse 1|Chorus|Verse 2|Bridge|Outro",
+                    {"name": "Intro|Verse 1|Chorus|Verse 2|Chorus-2|Bridge|Outro",
                      "type": "intro|verse|chorus|bridge|outro",
-                     "lines": ["4 short singable lines per section (2 for intro/outro)"]}
+                     "lines": ["the singable lines of this section"]}
                 ],
             },
-            "rules": ["8 sections max", "chorus should repeat with the same hook",
-                      "keep lines 6-12 words", "rhyme within sections"],
+            "rules": ["max 8 sections", "repeated choruses keep identical hook lines",
+                      "6-10 words per line", "true end-rhymes (AABB/ABAB) in every section",
+                      "chorus first line = song title"],
         }
         data = self.complete_json(system, json.dumps(user, ensure_ascii=False), max_tokens=2200)
         data.setdefault("title", req.title_hint or req.idea[:60])
@@ -152,12 +173,25 @@ def scene_prompt_messages(scenes: list, style_bible: dict, idea: str, genre: str
     system = (
         "You are a senior cinematographer and prompt engineer for modern "
         "text-to-image / text-to-video models (SDXL, Flux, LTX-Video, Wan). "
-        "Write ONE production-ready prompt per scene. Each prompt: camera & lens, "
-        "concrete subject action that matches the lyric line, environment, "
-        "lighting, mood, style; 40-70 words; vivid but literal; no abstract "
-        "poetry, no camera-instruction text inside the prompt, no quotes. "
-        "Keep characters, wardrobe and world CONSISTENT across scenes. "
-        "Also give a short negative prompt per scene. "
+        "Write ONE production-ready prompt per scene.\n"
+        "PROMPT FORMULA - every prompt must contain, in this order:\n"
+        "1. SHOT & LENS matched to the shot type: wide=18-24mm establishing with "
+        "foreground-midground-background layers; medium=35-50mm with shallow "
+        "depth of field; close-up=85-100mm portrait with bokeh.\n"
+        "2. SUBJECT ACTION grounded in that scene's lyric line - what the "
+        "character concretely DOES (climbing, lighting a lamp, bowing, turning).\n"
+        "3. CHARACTER CONTINUITY: copy the character's prompt_token description "
+        "word-for-word (same wardrobe, same look) in every scene they appear in.\n"
+        "4. ENVIRONMENT + LIGHTING: a motivated light source (low golden sun and "
+        "god rays, flickering diya flames, cool moonlight), atmospheric haze or "
+        "particles where fitting.\n"
+        "5. MOOD + PALETTE words from the visual style; end with film-grade quality "
+        "tags (cinematic still, 35mm film grain, ultra-detailed).\n"
+        "VARIETY RULES: 45-75 words; consecutive scenes must differ in camera angle "
+        "AND location detail; no abstract poetry, no quotes, no text/watermark.\n"
+        "MOTION: pick per scene, never the same motion twice in a row.\n"
+        "NEGATIVE per scene, at least: text, watermark, logo, deformed hands, "
+        "extra limbs, low quality, oversaturated.\n"
         "Respond ONLY with JSON: {\"prompts\": [{\"index\": 0, \"prompt\": \"...\", "
         "\"negative\": \"...\", \"motion\": \"slow_zoom_in|slow_zoom_out|pan_left|"
         "pan_right|static\"}]}"
@@ -166,7 +200,8 @@ def scene_prompt_messages(scenes: list, style_bible: dict, idea: str, genre: str
         "idea": idea or "",
         "genre": genre or "",
         "visual_style": (style_bible or {}).get("visual_style", ""),
-        "characters": [c.get("name") for c in (style_bible or {}).get("characters", []) if c.get("name")],
+        "characters": [{"name": c.get("name"), "prompt_token": (c.get("prompt_token") or c.get("description") or "")}
+                       for c in (style_bible or {}).get("characters", []) if c.get("name")],
         "scenes": [{"index": s.get("index", i), "section": s.get("section", ""),
                     "lyric_line": s.get("lyrics_text", ""), "shot": s.get("shot", ""),
                     "draft_description": s.get("description", "")}

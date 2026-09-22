@@ -52,6 +52,34 @@ def h_song_demo(db, payload, progress):
     _attach_song(db, project, dest, title="Demo Track (local synth)", source="demo", progress=progress)
 
 
+def h_song_generate(db, payload, progress):
+    """AI song generation - MusicGen writes an original instrumental from an
+    LLM-written music description (audiocraft model via transformers)."""
+    from .storage import song_path
+    from .providers.music_musicgen import get_music_provider, music_description_prompt
+    project = db.query(Project).get(payload["project_id"])
+    prov = get_music_provider()
+    progress(8, f"Writing the music brief with AI ({prov.name})...")
+    desc = music_description_prompt(project.idea, project.genre, project.mood)
+    print(f"[music] description: {desc}")
+    dest = song_path(project.id, "ai_song.wav")
+    seconds = float(payload.get("seconds") or SETTINGS.musicgen_seconds)
+    progress(20, f"Generating {seconds:.0f}s of music locally with {prov.name} (CPU is slow; GPU much faster)...")
+    title = f"AI Song ({prov.name})"
+    try:
+        prov.generate(dest, desc, seconds=seconds)
+    except Exception as exc:
+        # small-RAM machines: MusicGen needs ~3GB free - fall back to the
+        # built-in synth so the button never hard-fails
+        from .providers.music_musicgen import SynthMusicProvider
+        print(f"[music] {prov.name} failed ({exc}); falling back to synth")
+        progress(45, f"MusicGen needs ~3GB free RAM ({str(exc)[:60]}) - using built-in synth instead")
+        SynthMusicProvider().generate(dest, desc, seconds=seconds)
+        title = "AI Song (synth fallback - MusicGen needs more RAM)"
+    _attach_song(db, project, dest, title=title, source="ai_musicgen",
+                 progress=progress)
+
+
 def h_song_upload(db, payload, progress):
     """payload: {project_id, path, original_name, mime, title, source}"""
     project = db.query(Project).get(payload["project_id"])
@@ -410,6 +438,7 @@ HANDLERS = {
     "lyrics.generate": h_lyrics_generate,
     "lyrics.extract": h_lyrics_extract,
     "song.demo": h_song_demo,
+    "song.generate": h_song_generate,
     "song.upload": h_song_upload,
     "audio.realign": h_realign,
     "storyboard.generate": h_storyboard_generate,
