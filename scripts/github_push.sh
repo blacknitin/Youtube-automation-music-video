@@ -8,6 +8,11 @@ cd "$(dirname "$0")/.."
 MSG="${1:-Sync from sandbox $(date -u +'%Y-%m-%d %H:%M UTC')}"
 REPO="blacknitin/Youtube-automation-music-video"
 
+export GIT_AUTHOR_NAME=blacknitin
+export GIT_AUTHOR_EMAIL="102011029+blacknitin@users.noreply.github.com"
+export GIT_COMMITTER_NAME=blacknitin
+export GIT_COMMITTER_EMAIL="102011029+blacknitin@users.noreply.github.com"
+
 if [ ! -d .git ]; then
   git init -q
   git config user.name blacknitin

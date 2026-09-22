@@ -60,7 +60,16 @@ def _mix(a, b, t):
 
 
 def _digest(*parts) -> bytes:
-    return hashlib.sha256("|".join(str(p) for p in parts).encode()).digest()
+    """Deterministic byte stream — chained sha256, 128 bytes. Bytes 0-31 match
+    the legacy single digest (existing art unchanged); the tail guarantees
+    every derived index in the composer stays in range."""
+    base = "|".join(str(p) for p in parts).encode()
+    out = bytearray(hashlib.sha256(base).digest())
+    counter = 0
+    while len(out) < 128:
+        out += hashlib.sha256(base + b"#" + str(counter).encode()).digest()
+        counter += 1
+    return bytes(out)
 
 
 def render_placeholder(prompt: str, out_path, seed: int = 0, width=1280, height=720,

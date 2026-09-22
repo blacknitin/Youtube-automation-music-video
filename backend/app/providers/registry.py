@@ -67,6 +67,52 @@ def _nlp_ok() -> bool:
     from .nlp_hf import nlp_enabled
     return nlp_enabled()
 
+class _SafeLLM:
+    """Runtime-fallback wrapper: if the active LLM provider throws at request
+    time (quota, network, bad JSON), the offline template writer answers
+    instead — lyrics/storyboard/metadata jobs NEVER fail on the LLM."""
+    name = "safe-llm"
+
+    def __init__(self, inner, fallback=None):
+        self._inner = inner
+        self._fallback = fallback or MockLLMProvider()
+
+    @property
+    def active_name(self):
+        return getattr(self._inner, "name", "safe-llm")
+
+    def available(self) -> bool:
+        return True
+
+    def complete_json(self, system: str, user: str, max_tokens: int = 2400) -> dict:
+        try:
+            return self._inner.complete_json(system, user, max_tokens)
+        except Exception:
+            return self._fallback.complete_json(system, user, max_tokens)
+
+    def _wrap(self, method, *args, **kwargs):
+        try:
+            return getattr(self._inner, method)(*args, **kwargs)
+        except Exception as exc:
+            print(f"[llm] {self.active_name}.{method} failed ({exc}); using offline fallback")
+            return getattr(self._fallback, method)(*args, **kwargs)
+
+    def generate_lyrics(self, req):
+        return self._wrap("generate_lyrics", req)
+
+    def generate_storyboard(self, lyrics, analysis, visual_style, idea):
+        return self._wrap("generate_storyboard", lyrics, analysis, visual_style, idea)
+
+    def generate_scene_prompts(self, scenes, style_bible, idea, genre):
+        return self._wrap("generate_scene_prompts", scenes, style_bible, idea, genre)
+
+    def interpret_feedback(self, text, context):
+        return self._wrap("interpret_feedback", text, context)
+
+    def generate_metadata(self, context):
+        return self._wrap("generate_metadata", context)
+
+
 def get_llm() -> LLMProvider:
     with _lock:
         if "llm" in _cache:
@@ -83,8 +129,8 @@ def get_llm() -> LLMProvider:
             prov = OpenAICompatProvider()
         else:
             prov = MockLLMProvider()
-        _cache["llm"] = prov
-        return prov
+        _cache["llm"] = _SafeLLM(prov)
+        return _cache["llm"]
 
 def get_image_provider() -> ImageProvider:
     with _lock:
@@ -173,7 +219,7 @@ def system_status() -> dict:
     alg = get_aligner()
     import shutil
     return {
-        "llm": {"active": llm.name, "configured": SETTINGS.llm_provider,
+            "llm": {"active": getattr(llm, "active_name", llm.name), "configured": SETTINGS.llm_provider,
                 "ollama_reachable": _ollama_ok(), "model": SETTINGS.ollama_model,
                 "free": FreeLLMProvider().info(),
                 "hf_local": {"model": SETTINGS.hf_llm_model,
