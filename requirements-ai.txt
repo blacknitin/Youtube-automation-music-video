@@ -1,0 +1,20 @@
+# SongForge optional AI extras — 100% free/open-source (github.com/…)
+# Install on top of requirements.txt:
+#   pip install -r requirements-ai.txt
+# Torch CPU build (no CUDA needed); on a GPU machine install torch your usual way instead.
+
+# real DSP audio analysis: BPM, beat grid, sections, energy (librosa/librosa)
+librosa>=0.10
+
+# .srt subtitle export (byroot/pysrt)
+pysrt>=1.1
+
+# audio utility (jiaaro/pydub) — needs the Python 3.13 audioop backport
+pydub>=0.25
+audioop-lts>=0.1; python_version >= "3.13"
+
+# HuggingFace Transformers (huggingface/transformers) — local NLP:
+#   sentiment (nlptown/bert-base-multilingual-uncased-sentiment),
+#   summarization (t5-small), offline LLM (EleutherAI/gpt-neo)
+torch>=2.2; python_version < "3.13"
+transformers>=4.40

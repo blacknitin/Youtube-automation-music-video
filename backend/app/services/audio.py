@@ -35,6 +35,120 @@ def load_pcm(path: str, sr: int = 22050) -> np.ndarray:
 
 
 def analyze(path) -> dict:
+    try:
+        import librosa  # optional — real DSP beat tracking (github.com/librosa/librosa)
+        return _analyze_librosa(path)
+    except Exception:
+        return _analyze_numpy(path)
+
+
+def _analyze_librosa(path) -> dict:
+    """librosa-powered analysis: tempo via beat tracking, onset-novelty sections."""
+    import librosa
+    sr = 22050
+    y, _ = librosa.load(str(path), sr=sr, mono=True)
+    duration = len(y) / sr
+
+    # --- tempo + beat grid (dynamic programming beat tracker) ---
+    tempo, beat_frames = librosa.beat.beat_track(y=y, sr=sr, units="frames")
+    bpm = float(np.atleast_1d(tempo)[0])
+    while bpm < 70:
+        bpm *= 2
+    while bpm > 180:
+        bpm /= 2
+    hop = 512
+    beat_offset = float(beat_frames[0] * hop / sr) if len(beat_frames) else 0.0
+    beat_period = 60.0 / bpm
+    if beat_offset > beat_period:
+        beat_offset %= beat_period
+
+    # --- energy curve (RMS, 0.5s windows) ---
+    rms = librosa.feature.rms(y=y, frame_length=2048, hop_length=int(sr * 0.5))[0]
+    energy = rms / (rms.max() + 1e-9)
+
+    # --- sections via onset novelty + energy ---
+    onset = librosa.onset.onset_strength(y=y, sr=sr)
+    sections = _librosa_sections(onset, energy, sr, duration)
+
+    # --- waveform peaks for UI (~800 points) ---
+    n_p = 800
+    k = max(1, len(y) // n_p)
+    n = min(n_p, len(y) // k)
+    peaks = np.array([float(np.abs(y[i * k:(i + 1) * k]).max()) for i in range(n)])
+    peaks = peaks / (peaks.max() + 1e-9)
+
+    return {
+        "duration": round(float(duration), 2),
+        "bpm": round(float(bpm), 1),
+        "beat_offset": round(float(beat_offset), 2),
+        "sections": sections,
+        "energy": [round(float(e), 3) for e in energy],
+        "peaks": [round(float(p), 3) for p in peaks],
+    }
+
+
+def _librosa_sections(onset, energy, sr, duration) -> list:
+    """Cut sections at smoothed onset-novelty peaks (min 12s apart, max 8),
+    then label by energy level (verse below / chorus above median)."""
+    hop = 512
+    fps = sr / hop
+    nov = onset / (onset.max() + 1e-9)
+    sm = np.convolve(nov, np.ones(9) / 9, mode="same")
+    thr = float(sm.mean() + 0.5 * sm.std())
+    min_gap = int(12 * fps)
+    cuts: list = []
+    for i in range(1, len(sm) - 1):
+        if len(cuts) >= 7:
+            break
+        if sm[i] >= sm[i - 1] and sm[i] >= sm[i + 1] and sm[i] > thr:
+            if not cuts or i - cuts[-1] >= min_gap:
+                cuts.append(i)
+    if cuts and cuts[0] < int(8 * fps):
+        cuts = cuts[1:]  # drop a cut inside the first 8s (song start transient)
+    edges = [0.0] + [c / fps for c in cuts] + [float(duration)]
+    segments = [[edges[i], edges[i + 1]] for i in range(len(edges) - 1)]
+    # split over-long segments (>45s) at the quietest transition point
+    for _ in range(6):
+        if len(segments) >= 16 or all(e - s <= 45.0 for s, e in segments):
+            break
+        out = []
+        for s, e in segments:
+            if e - s > 45.0:
+                i0, i1 = int(s * fps), int(e * fps)
+                lo, hi = i0 + (i1 - i0) // 5, i1 - (i1 - i0) // 5
+                cut = (lo + int(np.argmin(sm[lo:hi]))) / fps if hi > lo else (s + e) / 2
+                out += [[s, cut], [cut, e]]
+            else:
+                out.append([s, e])
+        segments = out
+    sections = []
+    for s, e in segments:
+        if e - s < 6:
+            continue
+        seg = energy[int(s / 0.5):int(e / 0.5) + 1]
+        level = float(seg.mean()) if len(seg) else 0.5
+        sections.append({"start": round(s, 2), "end": round(e, 2), "_lvl": level})
+    if not sections:
+        return [{"name": "Full", "type": "verse", "start": 0.0, "end": round(float(duration), 2)}]
+    med = float(np.median([x["_lvl"] for x in sections]))
+    n = len(sections)
+    vi = ci = 0
+    for i, sec in enumerate(sections):
+        lvl = sec.pop("_lvl")
+        if i == 0 and (sec["end"] - sec["start"] <= 15 or lvl < med):
+            sec["name"], sec["type"] = "Intro", "intro"
+        elif i == n - 1 and i > 0 and (lvl < med or sec["end"] - sec["start"] <= 15):
+            sec["name"], sec["type"] = "Outro", "outro"
+        elif lvl >= med:
+            ci += 1
+            sec["name"], sec["type"] = f"Chorus {ci}", "chorus"
+        else:
+            vi += 1
+            sec["name"], sec["type"] = f"Verse {vi}", "verse"
+    return sections
+
+
+def _analyze_numpy(path) -> dict:
     sr = 22050
     y = load_pcm(str(path), sr)
     duration = len(y) / sr

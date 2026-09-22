@@ -78,3 +78,37 @@ def delete_project(pid: int, db: Session = Depends(get_db_dep)):
     db.delete(p)
     db.commit()
     return {"ok": True}
+
+
+@router.get("/{pid}/subtitles.srt")
+def export_subtitles_srt(pid: int, db: Session = Depends(get_db_dep)):
+    """Export the song's lyric lines as an .srt subtitle file (pysrt).
+    Timings come from the approved lyrics' alignment (same source the
+    karaoke burn-in uses)."""
+    import pysrt
+    from fastapi import Response
+    from ..models import Scene
+
+    p = db.query(Project).get(pid)
+    if not p:
+        raise HTTPException(404, "Project not found")
+    scenes = (db.query(Scene)
+              .filter(Scene.project_id == pid)
+              .order_by(Scene.idx).all())
+    if not scenes:
+        raise HTTPException(404, "No scenes/timings yet — approve lyrics first")
+
+    subs = pysrt.SubRipFile()
+    for sc in scenes:
+        text = (sc.lyrics_text or "").strip()
+        if not text:
+            continue
+        subs.append(pysrt.SubRipItem(
+            index=len(subs) + 1,
+            start=pysrt.SubRipTime(seconds=float(sc.start or 0)),
+            end=pysrt.SubRipTime(seconds=float(sc.end or (sc.start or 0) + 3)),
+            text=text))
+    body = "\n".join(str(s) for s in subs)
+    safe = "".join(c if c.isalnum() else "_" for c in p.title)[:40] or f"project_{pid}"
+    return Response(content=body, media_type="application/x-subrip",
+                    headers={"Content-Disposition": f'attachment; filename="{safe}.srt"'})

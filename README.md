@@ -165,6 +165,32 @@ save it (a ready SVD template ships in `examples/comfyui_video_workflow_svd.json
 before assembling the video — and automatically falls back to FFmpeg motion for any scene where
 animation fails, so a render never dies because of the AI step.
 
+## Open-source integrations matrix
+
+Every free/open-source repo SongForge builds on (or intentionally doesn't), and where it sits in the pipeline:
+
+| Repo | Role in SongForge | Status |
+|---|---|---|
+| [librosa/librosa](https://github.com/librosa/librosa) | Audio analysis: real beat-tracked BPM, beat offset, onset-novelty sections, RMS energy | ✅ integrated (`services/audio.py`, numpy fallback) |
+| [FFmpeg/FFmpeg](https://github.com/FFmpeg/FFmpeg) | Assembly: chunk concat, crossfades, karaoke burn-in, audio mux, i2v zoompan | ✅ core engine |
+| [huggingface/transformers](https://github.com/huggingface/transformers) | Local NLP: lyric sentiment → mood, summarization → story logline; offline LLM host | ✅ integrated (`providers/nlp_hf.py`, `providers/llm_hf.py`, opt-in via `NLP_AUTO=1`) |
+| [nlptown/bert-base-multilingual-uncased-sentiment](https://github.com/nlptown/BERT-base-multilingual-uncased-sentiment) | Lyric sentiment (1-5★, multilingual) → auto mood tag for storyboard + metadata | ✅ integrated |
+| [EleutherAI/gpt-neo](https://github.com/EleutherAI/gpt-neo) | Fully-offline keyless AI writer (`LLM_PROVIDER=hf`) — prompts/lyrics on your CPU/GPU | ✅ integrated (opt-in) |
+| [byroot/pysrt](https://github.com/byroot/pysrt) | `.srt` subtitle export of the approved lyric timings | ✅ integrated (`GET /api/projects/{id}/subtitles.srt`) |
+| [Zulko/moviepy](https://github.com/Zulko/moviepy) | — | ⚠️ not used: native FFmpeg assembly is faster with fewer deps |
+| [jiaaro/pydub](https://github.com/jiaaro/pydub) | Audio utility for future quick edits | ✅ available (installed with `requirements-ai.txt`) |
+| [slhck/ffmpeg-normalize](https://github.com/slhck/ffmpeg-normalize) | Loudness normalization | ⚠️ optional add-on if you want broadcast loudness targets |
+| [CompVis/stable-diffusion](https://github.com/CompVis/stable-diffusion) | Scene ART engine (via diffusers `StableDiffusionPipeline` behind OpenMontage's LocalDiffusion / ComfyUI) | ✅ integrated by proxy (real repo → GPU) |
+| [facebookresearch/audiocraft](https://github.com/facebookresearch/audiocraft) (MusicGen) | Demo-song synthesis upgrade | ⚙️ optional GPU extra — CPU uses the built-in numpy synth |
+| [riffusion/riffusion](https://github.com/riffusion/riffusion) | Music generation alternative | ⚙️ optional future engine behind the provider interface |
+| [FluidSynth/fluidsynth](https://github.com/FluidSynth/fluidsynth) | MIDI→WAV rendering for demo instrumentals | ⚙️ optional on your machine (`apt install fluidsynth`) |
+| [svc-develop-team/so-vits-svc](https://github.com/svc-develop-team/so-vits-svc) | Voice conversion | ❌ out of scope: vocals come from Suno imports |
+| Stability-AI/stable-video-diffusion, modelscope text-to-video, deforum, AnimateDiff | Video synthesis | ❌ not wired: **video generation is OpenMontage-exclusive by design** — these can run *inside* ComfyUI workflows you attach |
+| [langchain-ai/langchain](https://github.com/langchain-ai/langchain), AutoGPT | Agentic orchestration | ❌ not used: the built-in Autopilot job chain covers orchestration with zero bloat |
+| suno-api (unofficial) | Suno automation | ❌ not used: unofficial wrappers break ToS — SongForge uses the **Suno import loop** (copy → generate → download → import) |
+
+Install all optional AI extras: `pip install -r requirements-ai.txt`
+
 ### Better image prompts (built in)
 Every storyboard pass runs a **cinematic prompt engine** (`app/services/prompt.py`) that rewrites each
 scene prompt into modern image-model structure: camera & lens -> concrete lyric imagery -> environment ->
@@ -172,8 +198,7 @@ lighting arc (verses soft dawn / choruses golden god-rays / bridges moody ember)
 quality boosters, plus a strong shared negative prompt. Works with the offline mock, Ollama and cloud
 LLMs alike — no setup needed.
 
-### 8. Character animation — AnimatedDrawings (free, CPU, MIT)
-Want the *character* in a scene to really move — dance, jump, wave — instead of just camera motion?
+### 8. Character animation — AnimatedDrawings (free, CPU, MIT)Want the *character* in a scene to really move — dance, jump, wave — instead of just camera motion?
 SongForge integrates Meta's **AnimatedDrawings** (`facebookresearch/AnimatedDrawings`, MIT):
 it finds the character in the scene image, rigs a skeleton onto it and retargets real
 motion-capture clips onto it.

@@ -40,6 +40,10 @@ class Settings:
         self.free_llm_api_key = os.getenv("FREE_LLM_API_KEY", "")
         self.free_llm_base_url = os.getenv("FREE_LLM_BASE_URL", "")
         self.free_llm_model = os.getenv("FREE_LLM_MODEL", "")
+        # Local HuggingFace Transformers (offline NLP: gpt-neo LLM, sentiment, summarization)
+        self.hf_llm_model = os.getenv("HF_LLM_MODEL", "EleutherAI/gpt-neo-125M")
+        self.nlp_enabled = os.getenv("NLP_ENABLED", "")          # "1" forces NLP on
+        self.nlp_auto = os.getenv("NLP_AUTO", "0") == "1"        # auto-on if transformers installed
         self.openai_base_url = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
         self.openai_api_key = os.getenv("OPENAI_API_KEY", "")
         self.openai_model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")

@@ -16,6 +16,7 @@ from .llm_mock import MockLLMProvider
 from .llm_ollama import OllamaProvider
 from .llm_openai import OpenAICompatProvider
 from .llm_free import FreeLLMProvider
+from .llm_hf import HFLocalLLMProvider
 from .image_placeholder import PlaceholderImageProvider
 from .image_comfyui import ComfyUIImageProvider
 from .image_openmontage import OpenMontageImageProvider
@@ -55,6 +56,17 @@ def _fw_ok() -> bool:
     except Exception:
         return False
 
+def _nlp_installed() -> bool:
+    try:
+        import transformers  # noqa: F401
+        return True
+    except Exception:
+        return False
+
+def _nlp_ok() -> bool:
+    from .nlp_hf import nlp_enabled
+    return nlp_enabled()
+
 def get_llm() -> LLMProvider:
     with _lock:
         if "llm" in _cache:
@@ -65,6 +77,8 @@ def get_llm() -> LLMProvider:
             prov = OllamaProvider()
         elif free.available() and (p == "auto" or p in ("free", "groq", "gemini", "openrouter")):
             prov = free
+        elif p == "hf":
+            prov = HFLocalLLMProvider()
         elif p == "openai":
             prov = OpenAICompatProvider()
         else:
@@ -161,7 +175,10 @@ def system_status() -> dict:
     return {
         "llm": {"active": llm.name, "configured": SETTINGS.llm_provider,
                 "ollama_reachable": _ollama_ok(), "model": SETTINGS.ollama_model,
-                "free": FreeLLMProvider().info()},
+                "free": FreeLLMProvider().info(),
+                "hf_local": {"model": SETTINGS.hf_llm_model,
+                             "installed": HFLocalLLMProvider().available()},
+                "nlp": {"enabled": _nlp_ok(), "transformers_installed": _nlp_installed()}},
         "image": {"active": img.name, "configured": SETTINGS.image_provider,
                   "comfyui_reachable": _comfy_ok(),
                   "openmontage_art": isinstance(img, OpenMontageImageProvider)},

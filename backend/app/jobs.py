@@ -364,8 +364,46 @@ def h_lyrics_extract(db, payload, progress):
     from .services.extract import extract_lyrics_from_song
     project = db.query(Project).get(payload["project_id"])
     res = extract_lyrics_from_song(db, project, progress)
+    _nlp_enrich(db, project)
     progress(100, f"Extracted {res['lines']} lyric lines — review & approve them")
     return res
+
+
+def _nlp_enrich(db, project):
+    """Optional local-NLP enrichment (HuggingFace transformers):
+    sentiment -> auto mood tag + lyric summary -> story logline.
+    Silent no-op unless NLP is enabled and models are available."""
+    try:
+        from .providers.nlp_hf import get_nlp
+        nlp = get_nlp()
+        if not nlp or project.mood:
+            return
+        import json as _json
+        lyr = (db.query(Lyrics)
+               .filter(Lyrics.project_id == project.id)
+               .order_by(Lyrics.id.desc()).first())
+        if not lyr:
+            return
+        data = _json.loads(lyr.content_json)
+        flat = "\n".join(line for sec in data.get("sections", [])
+                         for line in sec.get("lines", []))
+        if not flat.strip():
+            return
+        sent = nlp.sentiment_mood(flat)
+        settings = _json.loads(project.settings_json or "{}")
+        if sent:
+            settings["nlp_sentiment"] = sent
+            if not project.mood:
+                project.mood = sent["mood"]
+        summary = nlp.summarize(flat)
+        if summary:
+            settings["story_summary"] = summary
+        project.settings_json = _json.dumps(settings)
+        db.add(project)
+        db.commit()
+        print(f"[nlp] project {project.id}: mood={project.mood} summary={'yes' if summary else 'no'}")
+    except Exception as exc:
+        print(f"[nlp] enrich skipped: {exc}")
 
 
 HANDLERS = {
